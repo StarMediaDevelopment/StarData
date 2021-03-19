@@ -79,7 +79,7 @@
     <repositories>
         <repository>
             <id>starmediadev-maven</id>
-            <url>https://gitlab.com/api/v4/projects/24612309/packages/maven</url>
+            <url>https://gitlab.com/api/v4/projects/25269508/packages/maven</url>
         </repository>
     </repositories>
 
@@ -122,11 +122,11 @@
     <distributionManagement>
         <repository>
             <id>starmediadev-maven</id>
-            <url>https://gitlab.com/api/v4/projects/24612309/packages/maven</url>
+            <url>https://gitlab.com/api/v4/projects/25269508/packages/maven</url>
         </repository>
         <snapshotRepository>
             <id>starmediadev-maven</id>
-            <url>https://gitlab.com/api/v4/projects/24612309/packages/maven</url>
+            <url>https://gitlab.com/api/v4/projects/25269508/packages/maven</url>
         </snapshotRepository>
     </distributionManagement>
 </project>
