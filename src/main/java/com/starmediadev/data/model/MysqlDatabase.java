@@ -149,8 +149,10 @@ public class MysqlDatabase {
                 logger.severe("There is no DataTypeHandler for field " + field.getName() + " in class " + record.getClass().getName());
                 continue;
             }
-
-            serialized.put(field.getName(), handler.serializeSql(fieldValue));
+            
+            if (fieldValue != null) {
+                serialized.put(field.getName(), handler.serializeSql(fieldValue));
+            }
         }
 
         Column unique = null;

@@ -55,14 +55,19 @@ public class ArrayHandler extends DataTypeHandler<Object> {
                 return null;
             }
         }
+        
+        Object array;
+        if (valueSplit.length == 2) {
+            String[] elementValues = valueSplit[1].split(",");
 
-        String[] elementValues = valueSplit[1].split(",");
+            array = Array.newInstance(typeClass, elementValues.length);
 
-        Object array = Array.newInstance(typeClass, elementValues.length);
-
-        DataTypeHandler<?> typeHandler = typeRegistry.getHandler(typeClass);
-        for (int i = 0; i < elementValues.length; i++) {
-            Array.set(array, i, typeHandler.deserialize(elementValues[i], typeClass));
+            DataTypeHandler<?> typeHandler = typeRegistry.getHandler(typeClass);
+            for (int i = 0; i < elementValues.length; i++) {
+                Array.set(array, i, typeHandler.deserialize(elementValues[i], typeClass));
+            }
+        } else {
+            array = Array.newInstance(typeClass, 0);
         }
 
         return array;

@@ -57,35 +57,44 @@ class Row {
                 Column column = table.getColumn(columnName);
                 Object object = null;
                 Object dataObject = this.dataMap.get(field.getName());
-                if (column.getTypeHandler() instanceof CollectionHandler) {
-                    try {
-                        String[] split = ((String) dataObject).split(":");
-                        Class<? extends Collection> collectionType = (Class<? extends Collection>) Class.forName(split[0]);
-                        Class<?> elementType = Class.forName(split[1]);
-                        Collection collection = collectionType.getDeclaredConstructor().newInstance();
-                        String[] elementSplit = split[2].split(",");
-                        for (String e : elementSplit) {
-                            if (IRecord.class.isAssignableFrom(elementType)) {
-                                int id = Integer.parseInt(e);
-                                IRecord colRecord = database.getRecord(recordRegistry, (Class<? extends IRecord>) elementType, "id", id);
-                                collection.add(colRecord);
-                            } else {
-                                DataTypeHandler<?> handler = database.getTypeRegistry().getHandler(elementType);
-                                if (handler == null) {
-                                    database.getLogger().severe("The field " + field.getName() + " in record " + recordClass.getName() + " is a collection and the element type does not have a DataTypeHandler");
-                                    return null;
-                                }
-
-                                Object o = handler.deserialize(e);
-                                collection.add(o);
-                            }
+                if (dataObject != null) {
+                    if (dataObject instanceof String) {
+                        String s = (String) dataObject;
+                        if (s == null || s.equals("null") || s.equals("")) {
+                            continue;
                         }
-                        object = collection;
-                    } catch (Exception e) {}
-                } else if (column.getTypeHandler() instanceof RecordHandler) {
-                    object = database.getRecord(recordRegistry, ((Class<? extends IRecord>) field.getType()), "id", this.dataMap.get(field.getName())); //TODO
-                } else {
-                    object = column.getTypeHandler().deserialize(dataObject, field.getType());
+                    }
+                    if (column.getTypeHandler() instanceof CollectionHandler) {
+                        try {
+                            String[] split = ((String) dataObject).split(":");
+                            Class<? extends Collection> collectionType = (Class<? extends Collection>) Class.forName(split[0]);
+                            Class<?> elementType = Class.forName(split[1]);
+                            Collection collection = collectionType.getDeclaredConstructor().newInstance();
+                            String[] elementSplit = split[2].split(",");
+                            for (String e : elementSplit) {
+                                if (IRecord.class.isAssignableFrom(elementType)) {
+                                    int id = Integer.parseInt(e);
+                                    IRecord colRecord = database.getRecord(recordRegistry, (Class<? extends IRecord>) elementType, "id", id);
+                                    collection.add(colRecord);
+                                } else {
+                                    DataTypeHandler<?> handler = database.getTypeRegistry().getHandler(elementType);
+                                    if (handler == null) {
+                                        database.getLogger().severe("The field " + field.getName() + " in record " + recordClass.getName() + " is a collection and the element type does not have a DataTypeHandler");
+                                        return null;
+                                    }
+
+                                    Object o = handler.deserialize(e);
+                                    collection.add(o);
+                                }
+                            }
+                            object = collection;
+                        } catch (Exception e) {
+                        }
+                    } else if (column.getTypeHandler() instanceof RecordHandler) {
+                        object = database.getRecord(recordRegistry, ((Class<? extends IRecord>) field.getType()), "id", this.dataMap.get(field.getName())); //TODO
+                    } else {
+                        object = column.getTypeHandler().deserialize(dataObject, field.getType());
+                    }
                 }
                 if (object != null) {
                     field.set(record, object);
