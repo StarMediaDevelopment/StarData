@@ -5,24 +5,29 @@ import java.util.Properties;
 
 public class SqlProperties {
     private Properties properties;
-    
-    public SqlProperties() {}
-    
+
+    public SqlProperties() {
+        this.properties = new Properties();
+    }
+
     public void load(File file) {
-        properties = new Properties();
+        if (properties == null) {
+            properties = new Properties();
+        }
         try {
             FileInputStream in = new FileInputStream(file);
             properties.load(in);
             in.close();
-        } catch (IOException e) {}
-        
+        } catch (IOException e) {
+        }
+
         load(properties);
     }
-    
+
     public void load(Properties properties) {
         this.properties = properties;
     }
-    
+
     public static Properties createDefaultProperties() {
         Properties properties = new Properties();
         properties.put("mysql-host", "localhost");
@@ -56,23 +61,27 @@ public class SqlProperties {
     public void setDatabase(String database) {
         this.properties.put("mysql-database", database);
     }
-    
+
     public void setHost(String host) {
-        this.properties.put("mysql-host", host);
+        if (host != null)
+            this.properties.put("mysql-host", host);
     }
-    
+
     public void setUsername(String username) {
-        this.properties.put("mysql-username", username);
+        if (username != null)
+            this.properties.put("mysql-username", username);
     }
-    
+
     public void setPassword(String password) {
-        this.properties.put("mysql-password", password);
+        if (password != null)
+            this.properties.put("mysql-password", password);
     }
-    
+
     public void setPort(int port) {
-        this.properties.put("mysql-port", port + "");
+        if (port != 0)
+            this.properties.put("mysql-port", port + "");
     }
-    
+
     public void save(File file) {
         try {
             if (!file.exists()) {
@@ -81,7 +90,8 @@ public class SqlProperties {
             FileOutputStream out = new FileOutputStream(file);
             properties.store(out, "");
             out.close();
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
     }
 
     public Properties getConnectionProperties() {
