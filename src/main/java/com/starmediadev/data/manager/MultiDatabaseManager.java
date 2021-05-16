@@ -16,9 +16,9 @@ import java.util.logging.Logger;
 
 public class MultiDatabaseManager extends DatabaseManager {
     
-    private Map<String, MysqlDatabase> databases = new HashMap<>();
+    private final Map<String, MysqlDatabase> databases = new HashMap<>();
     
-    private ListMap<String, String> databaseToTableMap = new ListMap<>();
+    private final ListMap<String, String> databaseToTableMap = new ListMap<>();
 
     public MultiDatabaseManager(Logger logger, RecordRegistry recordRegistry, TypeRegistry typeRegistry) {
         super(logger, recordRegistry, typeRegistry);

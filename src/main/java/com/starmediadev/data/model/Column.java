@@ -3,10 +3,11 @@ package com.starmediadev.data.model;
 import com.starmediadev.data.handlers.DataTypeHandler;
 
 public class Column {
-    protected String name;
-    protected DataTypeHandler<?> typeHandler;
+    protected final String name;
+    protected final DataTypeHandler<?> typeHandler;
     protected int length;
-    protected boolean autoIncrement, unique;
+    protected final boolean autoIncrement;
+    protected final boolean unique;
 
     public Column(String name, DataTypeHandler<?> typeHandler, boolean autoIncrement, boolean unique) {
         this(name, typeHandler, 0, autoIncrement, unique);

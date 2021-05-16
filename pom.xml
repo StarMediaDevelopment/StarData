@@ -13,7 +13,9 @@
     <description>A data management library from Star Media DevelopmentLLC</description>
 
     <properties>
-        <java.version>1.8</java.version>
+        <maven.compiler.source>16</maven.compiler.source>
+        <maven.compiler.target>16</maven.compiler.target>
+        <java.version>16</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jar.output>${project.basedir}/../Output</jar.output>
     </properties>

@@ -18,16 +18,16 @@ import java.util.logging.Logger;
 
 public class MysqlDatabase {
     private static final String URL = "jdbc:mysql://{hostname}:{port}/{database}?useSSL=false";
-    private Logger logger;
+    private final Logger logger;
 
-    private MysqlDataSource dataSource;
+    private final MysqlDataSource dataSource;
     
-    private TypeRegistry typeRegistry;
+    private final TypeRegistry typeRegistry;
 
     private Queue<IRecord> queue = new ArrayBlockingQueue<>(100); //TODO
 
-    private Map<String, Table> tables = new HashMap<>();
-    private String databaseName;
+    private final Map<String, Table> tables = new HashMap<>();
+    private final String databaseName;
 
     public MysqlDatabase(Logger logger, SqlProperties properties, TypeRegistry typeRegistry) {
         this.logger = logger;

@@ -8,8 +8,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 public class MysqlDataSource {
-    private HikariConfig config = new HikariConfig();
-    private HikariDataSource ds;
+    private final HikariConfig config = new HikariConfig();
+    private final HikariDataSource ds;
     
     public MysqlDataSource(String url, String username, String password) {
         config.setJdbcUrl(url);

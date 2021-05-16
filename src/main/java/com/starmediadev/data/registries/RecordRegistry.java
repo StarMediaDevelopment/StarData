@@ -16,11 +16,11 @@ import java.util.logging.Logger;
 
 public final class RecordRegistry {
     private final TypeRegistry typeRegistry;
-    private Set<Class<? extends IRecord>> records = new HashSet<>();
-    private Set<Table> tables = new HashSet<>();
-    private Logger logger;
+    private final Set<Class<? extends IRecord>> records = new HashSet<>();
+    private final Set<Table> tables = new HashSet<>();
+    private final Logger logger;
     
-    private Map<String, String> recordToTableMap = new HashMap<>();
+    private final Map<String, String> recordToTableMap = new HashMap<>();
     
     public static RecordRegistry createInstance(Logger logger, TypeRegistry typeRegistry) {
         return new RecordRegistry(logger, typeRegistry);

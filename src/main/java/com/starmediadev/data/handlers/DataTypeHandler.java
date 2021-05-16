@@ -8,7 +8,7 @@ import java.util.Set;
 public abstract class DataTypeHandler<T> {
     
     protected Class<?> javaClass;
-    protected Set<Class<?>> additionalClasses = new HashSet<>();
+    protected final Set<Class<?>> additionalClasses = new HashSet<>();
     protected DataType mysqlType;
     protected int defaultLength;
 

@@ -17,8 +17,8 @@ import java.util.Set;
 
 class Row {
     private final MysqlDatabase database;
-    protected Map<String, Object> dataMap = new HashMap<>();
-    protected Table table;
+    protected final Map<String, Object> dataMap = new HashMap<>();
+    protected final Table table;
 
     public Row(Table table, ResultSet resultSet, MysqlDatabase database) {
         this.table = table;

@@ -17,10 +17,10 @@ public class BooleanHandler extends DataTypeHandler<Boolean> {
 
     public Boolean deserialize(Object object) {
         Boolean value = null;
-        if (object instanceof Boolean) {
-            value = (Boolean) object;
-        } else if (object instanceof String) {
-            value = Boolean.parseBoolean((String) object);
+        if (object instanceof Boolean b) {
+            value = b;
+        } else if (object instanceof String str) {
+            value = Boolean.parseBoolean(str);
         }
         return value;
     }

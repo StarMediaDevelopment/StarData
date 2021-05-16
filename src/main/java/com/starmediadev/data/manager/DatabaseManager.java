@@ -13,10 +13,10 @@ import java.util.logging.Logger;
 
 public abstract class DatabaseManager {
     
-    protected RecordRegistry recordRegistry;
-    protected TypeRegistry typeRegistry;
+    protected final RecordRegistry recordRegistry;
+    protected final TypeRegistry typeRegistry;
     protected boolean setup;
-    protected Logger logger;
+    protected final Logger logger;
 
     public DatabaseManager(Logger logger, RecordRegistry recordRegistry, TypeRegistry typeRegistry) {
         this.logger = logger;

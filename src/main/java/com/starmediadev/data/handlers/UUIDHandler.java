@@ -12,7 +12,7 @@ public class UUIDHandler extends DataTypeHandler<UUID> {
 
     public Object serializeSql(Object object) {
         if (object.getClass().isAssignableFrom(javaClass)) {
-            return ((UUID) object).toString();
+            return object.toString();
         }
         return null;
     }
@@ -26,7 +26,7 @@ public class UUIDHandler extends DataTypeHandler<UUID> {
 
     public String serializeRedis(Object object) {
         if (object instanceof UUID) {
-            return ((UUID) object).toString();
+            return object.toString();
         }
         
         return null;

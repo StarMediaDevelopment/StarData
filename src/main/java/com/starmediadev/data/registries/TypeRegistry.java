@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 
 public final class TypeRegistry {
     private final Logger logger;
-    private Set<DataTypeHandler<?>> typeHandlers = new HashSet<>();
+    private final Set<DataTypeHandler<?>> typeHandlers = new HashSet<>();
 
     private TypeRegistry(Logger logger) {
         this.logger = logger;

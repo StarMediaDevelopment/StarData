@@ -5,9 +5,10 @@ import com.starmediadev.utils.collection.IncrementalMap;
 import java.util.*;
 
 public class Table {
-    protected String name, recordName;
-    protected IncrementalMap<Column> columns = new IncrementalMap<>();
-    protected List<String> databases = new ArrayList<>();
+    protected final String name;
+    protected String recordName;
+    protected final IncrementalMap<Column> columns = new IncrementalMap<>();
+    protected final List<String> databases = new ArrayList<>();
 
     public Table(String name) {
         this.name = name;
