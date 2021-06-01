@@ -246,8 +246,7 @@ public class MysqlDatabase {
     }
 
     private Object serializeCollection(IRecord record, Field field, Object fieldValue, String join, List<Object> serializedElements) {
-        if (field.getGenericType() instanceof ParameterizedType) {
-            ParameterizedType paramType = ((ParameterizedType) field.getGenericType());
+        if (field.getGenericType() instanceof ParameterizedType paramType) {
             Type[] arguments = paramType.getActualTypeArguments();
             if (arguments != null && arguments.length == 1) {
                 try {

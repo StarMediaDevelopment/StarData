@@ -65,12 +65,10 @@ public final class RecordRegistry {
                 
                 if (Collection.class.isAssignableFrom(field.getType())) {
                     Type genericType = field.getGenericType();
-                    if (genericType instanceof ParameterizedType) {
-                        ParameterizedType pt = (ParameterizedType) genericType;
+                    if (genericType instanceof ParameterizedType pt) {
                         Type[] types = pt.getActualTypeArguments();
                         if (types != null && types.length == 1) {
-                            if (types[0] instanceof Class) {
-                                Class<?> ptc = (Class<?>) types[0];
+                            if (types[0] instanceof Class<?> ptc) {
                                 if (!IRecord.class.isAssignableFrom(ptc) && typeRegistry.getHandler(ptc) == null) {
                                     logger.severe("Collection type " + types[0].getTypeName() + " for the field " + field.getName() + " of the record " + recordClass.getName() + " cannot be handled.");
                                     return null;

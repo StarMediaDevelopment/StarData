@@ -58,8 +58,7 @@ class Row {
                 Object object = null;
                 Object dataObject = this.dataMap.get(field.getName());
                 if (dataObject != null) {
-                    if (dataObject instanceof String) {
-                        String s = (String) dataObject;
+                    if (dataObject instanceof String s) {
                         if (s == null || s.equals("null") || s.equals("")) {
                             continue;
                         }

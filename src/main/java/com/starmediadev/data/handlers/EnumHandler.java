@@ -24,8 +24,7 @@ public class EnumHandler extends DataTypeHandler<Enum> {
     }
 
     public Enum deserialize(Object object) {
-        if (object instanceof String) {
-            String str = (String) object;
+        if (object instanceof String str) {
             String[] split = str.split(":");
             String className = split[0];
             try {
