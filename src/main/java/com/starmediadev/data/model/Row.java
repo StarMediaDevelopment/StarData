@@ -4,7 +4,7 @@ import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.handlers.CollectionHandler;
 import com.starmediadev.data.handlers.DataTypeHandler;
 import com.starmediadev.data.handlers.RecordHandler;
-import com.starmediadev.data.registries.RecordRegistry;
+import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.utils.Utils;
 
 import java.lang.reflect.Constructor;
@@ -36,9 +36,9 @@ class Row {
         return dataMap;
     }
 
-    public <T extends IRecord> T getRecord(RecordRegistry recordRegistry, Class<T> recordClass) {
+    public <T extends IDataObject> T getRecord(DataObjectRegistry dataObjectRegistry, Class<T> recordClass) {
         try {
-            Table table = recordRegistry.getTableByRecordClass(recordClass);
+            Table table = dataObjectRegistry.getTableByRecordClass(recordClass);
             Constructor<?> constructor = recordClass.getDeclaredConstructor();
             if (constructor == null) {
                 return null;
@@ -71,9 +71,9 @@ class Row {
                             Collection collection = collectionType.getDeclaredConstructor().newInstance();
                             String[] elementSplit = split[2].split(",");
                             for (String e : elementSplit) {
-                                if (IRecord.class.isAssignableFrom(elementType)) {
+                                if (IDataObject.class.isAssignableFrom(elementType)) {
                                     int id = Integer.parseInt(e);
-                                    IRecord colRecord = database.getRecord(recordRegistry, (Class<? extends IRecord>) elementType, "id", id);
+                                    IDataObject colRecord = database.getAllMatchingData(dataObjectRegistry, (Class<? extends IDataObject>) elementType, "id", id);
                                     collection.add(colRecord);
                                 } else {
                                     DataTypeHandler<?> handler = database.getTypeRegistry().getHandler(elementType);
@@ -90,7 +90,7 @@ class Row {
                         } catch (Exception e) {
                         }
                     } else if (column.getTypeHandler() instanceof RecordHandler) {
-                        object = database.getRecord(recordRegistry, ((Class<? extends IRecord>) field.getType()), "id", this.dataMap.get(field.getName())); //TODO
+                        object = database.getAllMatchingData(dataObjectRegistry, ((Class<? extends IDataObject>) field.getType()), "id", this.dataMap.get(field.getName())); //TODO
                     } else {
                         object = column.getTypeHandler().deserialize(dataObject, field.getType());
                     }

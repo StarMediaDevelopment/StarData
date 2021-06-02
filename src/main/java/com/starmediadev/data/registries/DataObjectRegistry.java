@@ -4,7 +4,7 @@ import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.annotations.TableInfo;
 import com.starmediadev.data.handlers.DataTypeHandler;
 import com.starmediadev.data.model.Column;
-import com.starmediadev.data.model.IRecord;
+import com.starmediadev.data.model.IDataObject;
 import com.starmediadev.data.model.Table;
 import com.starmediadev.utils.Utils;
 
@@ -14,24 +14,24 @@ import java.lang.reflect.Type;
 import java.util.*;
 import java.util.logging.Logger;
 
-public final class RecordRegistry {
+public final class DataObjectRegistry {
     private final TypeRegistry typeRegistry;
-    private final Set<Class<? extends IRecord>> records = new HashSet<>();
+    private final Set<Class<? extends IDataObject>> records = new HashSet<>();
     private final Set<Table> tables = new HashSet<>();
     private final Logger logger;
     
     private final Map<String, String> recordToTableMap = new HashMap<>();
     
-    public static RecordRegistry createInstance(Logger logger, TypeRegistry typeRegistry) {
-        return new RecordRegistry(logger, typeRegistry);
+    public static DataObjectRegistry createInstance(Logger logger, TypeRegistry typeRegistry) {
+        return new DataObjectRegistry(logger, typeRegistry);
     }
     
-    private RecordRegistry(Logger logger, TypeRegistry typeRegistry) {
+    private DataObjectRegistry(Logger logger, TypeRegistry typeRegistry) {
         this.logger = logger;
         this.typeRegistry = typeRegistry;
     }
     
-    public Table register(Class<? extends IRecord> recordClass) {
+    public Table register(Class<? extends IDataObject> recordClass) {
         Table table = getTableByRecordClass(recordClass);
         if (table == null) {
             try {
@@ -69,7 +69,7 @@ public final class RecordRegistry {
                         Type[] types = pt.getActualTypeArguments();
                         if (types != null && types.length == 1) {
                             if (types[0] instanceof Class<?> ptc) {
-                                if (!IRecord.class.isAssignableFrom(ptc) && typeRegistry.getHandler(ptc) == null) {
+                                if (!IDataObject.class.isAssignableFrom(ptc) && typeRegistry.getHandler(ptc) == null) {
                                     logger.severe("Collection type " + types[0].getTypeName() + " for the field " + field.getName() + " of the record " + recordClass.getName() + " cannot be handled.");
                                     return null;
                                 }
@@ -80,7 +80,7 @@ public final class RecordRegistry {
                 
                 if (field.getType().isArray()) {
                     Class<?> compType = field.getType().getComponentType();
-                    if (!IRecord.class.isAssignableFrom(compType) && typeRegistry.getHandler(compType) == null) {
+                    if (!IDataObject.class.isAssignableFrom(compType) && typeRegistry.getHandler(compType) == null) {
                         logger.severe("Array type " + compType.getTypeName() + " for the field " + field.getName() + " of the record " + recordClass.getName() + " cannot be handled.");
                         return null;
                     }
@@ -135,7 +135,7 @@ public final class RecordRegistry {
         return table;
     }
 
-    public Table getTableByRecordClass(Class<? extends IRecord> recordClass) {
+    public Table getTableByRecordClass(Class<? extends IDataObject> recordClass) {
         String tableName = null;
         for (Map.Entry<String, String> entry : recordToTableMap.entrySet()) {
             if (recordClass.getName().equalsIgnoreCase(entry.getKey())) {
@@ -156,8 +156,8 @@ public final class RecordRegistry {
         return null;
     }
 
-    public Class<? extends IRecord> getRecordClassByTable(Table table) {
-        for (Class<? extends IRecord> record : records) {
+    public Class<? extends IDataObject> getRecordClassByTable(Table table) {
+        for (Class<? extends IDataObject> record : records) {
             if (record.getName().equalsIgnoreCase(table.getRecordName())) {
                 return record;
             }
@@ -165,8 +165,8 @@ public final class RecordRegistry {
         return null;
     }
 
-    public Class<? extends IRecord> getRecordByClassName(String name) {
-        for (Class<? extends IRecord> record : records) {
+    public Class<? extends IDataObject> getRecordByClassName(String name) {
+        for (Class<? extends IDataObject> record : records) {
             if (record.getName().equalsIgnoreCase(name)) {
                 return record;
             }

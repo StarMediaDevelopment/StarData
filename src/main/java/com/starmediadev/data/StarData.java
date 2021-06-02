@@ -3,7 +3,7 @@ package com.starmediadev.data;
 import com.starmediadev.data.manager.DatabaseManager;
 import com.starmediadev.data.manager.MultiDatabaseManager;
 import com.starmediadev.data.manager.SingleDatabaseManager;
-import com.starmediadev.data.registries.RecordRegistry;
+import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.data.registries.TypeRegistry;
 
 import java.io.IOException;
@@ -16,7 +16,7 @@ public class StarData {
     private Context context;
     
     private TypeRegistry typeRegistry;
-    private RecordRegistry recordRegistry;
+    private DataObjectRegistry dataObjectRegistry;
     
     private DatabaseManager manager;
     
@@ -36,12 +36,12 @@ public class StarData {
         this.logger = logger;
         
         typeRegistry = TypeRegistry.createInstance(logger);
-        recordRegistry = RecordRegistry.createInstance(logger, typeRegistry);
+        dataObjectRegistry = DataObjectRegistry.createInstance(logger, typeRegistry);
         
         if (context == Context.SINGLE) {
-            manager = new SingleDatabaseManager(logger, recordRegistry, typeRegistry);
+            manager = new SingleDatabaseManager(logger, dataObjectRegistry, typeRegistry);
         } else if (context == Context.MULTI) {
-            manager = new MultiDatabaseManager(logger, recordRegistry, typeRegistry);
+            manager = new MultiDatabaseManager(logger, dataObjectRegistry, typeRegistry);
         }
     }
     
@@ -68,8 +68,8 @@ public class StarData {
         return typeRegistry;
     }
 
-    public RecordRegistry getRecordRegistry() {
-        return recordRegistry;
+    public DataObjectRegistry getRecordRegistry() {
+        return dataObjectRegistry;
     }
 
     public Logger getLogger() {

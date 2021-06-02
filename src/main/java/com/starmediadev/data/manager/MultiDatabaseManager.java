@@ -1,9 +1,9 @@
 package com.starmediadev.data.manager;
 
-import com.starmediadev.data.model.IRecord;
+import com.starmediadev.data.model.IDataObject;
 import com.starmediadev.data.model.Table;
 import com.starmediadev.data.properties.SqlProperties;
-import com.starmediadev.data.registries.RecordRegistry;
+import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.data.registries.TypeRegistry;
 import com.starmediadev.data.model.MysqlDatabase;
 import com.starmediadev.utils.collection.ListMap;
@@ -20,8 +20,8 @@ public class MultiDatabaseManager extends DatabaseManager {
     
     private final ListMap<String, String> databaseToTableMap = new ListMap<>();
 
-    public MultiDatabaseManager(Logger logger, RecordRegistry recordRegistry, TypeRegistry typeRegistry) {
-        super(logger, recordRegistry, typeRegistry);
+    public MultiDatabaseManager(Logger logger, DataObjectRegistry dataObjectRegistry, TypeRegistry typeRegistry) {
+        super(logger, dataObjectRegistry, typeRegistry);
     }
 
     public MysqlDatabase createDatabase(SqlProperties properties) {
@@ -30,12 +30,12 @@ public class MultiDatabaseManager extends DatabaseManager {
         return database;
     }
 
-    public void saveRecord(IRecord record) {
+    public void saveRecord(IDataObject record) {
         checkAndPushRecord(record);
     }
 
-    public void saveRecords(IRecord... records) {
-        for (IRecord record : records) {
+    public void saveRecords(IDataObject... records) {
+        for (IDataObject record : records) {
             checkAndPushRecord(record);
         }
     }
@@ -57,9 +57,9 @@ public class MultiDatabaseManager extends DatabaseManager {
         this.databases.forEach((name, database) -> database.generateTables());
     }
 
-    public <T extends IRecord> T getRecord(Class<T> recordType, String columnName, Object value) {
+    public <T extends IDataObject> T getRecord(Class<T> recordType, String columnName, Object value) {
         for (MysqlDatabase database : this.databases.values()) {
-            T record = database.getRecord(recordRegistry, recordType, columnName, value);
+            T record = database.getAllMatchingData(dataObjectRegistry, recordType, columnName, value);
             if (record != null) {
                 return record;
             }
@@ -67,21 +67,21 @@ public class MultiDatabaseManager extends DatabaseManager {
         return null;
     }
 
-    public <T extends IRecord> List<T> getRecords(Class<T> recordType, String columnName, Object value) {
+    public <T extends IDataObject> List<T> getRecords(Class<T> recordType, String columnName, Object value) {
         List<T> records = new ArrayList<>();
         for (MysqlDatabase database : this.databases.values()) {
-            records.addAll(database.getRecords(recordRegistry, recordType, columnName, value));
+            records.addAll(database.getData(dataObjectRegistry, recordType, columnName, value));
         }
         return records;
     }
 
-    private void checkAndPushRecord(IRecord record) {
+    private void checkAndPushRecord(IDataObject record) {
         entryLoop:
         for (Map.Entry<String, List<String>> entry : databaseToTableMap.entrySet()) {
             for (String name : entry.getValue()) {
-                if (record.getClass().isAssignableFrom(recordRegistry.getRecordByClassName(name))) {
+                if (record.getClass().isAssignableFrom(dataObjectRegistry.getRecordByClassName(name))) {
                     MysqlDatabase database = databases.get(entry.getKey());
-                    database.saveRecord(recordRegistry, record);
+                    database.saveData(dataObjectRegistry, record);
                     break entryLoop;
                 }
             }

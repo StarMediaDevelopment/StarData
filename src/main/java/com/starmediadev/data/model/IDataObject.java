@@ -1,6 +1,6 @@
 package com.starmediadev.data.model;
 
-public interface IRecord {
+public interface IDataObject {
     int getId();
 
     void setId(int id);

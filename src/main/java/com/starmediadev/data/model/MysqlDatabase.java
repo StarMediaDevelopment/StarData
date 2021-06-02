@@ -4,7 +4,7 @@ import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.annotations.TableInfo;
 import com.starmediadev.data.handlers.DataTypeHandler;
 import com.starmediadev.data.properties.SqlProperties;
-import com.starmediadev.data.registries.RecordRegistry;
+import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.data.registries.TypeRegistry;
 import com.starmediadev.utils.Utils;
 
@@ -24,7 +24,7 @@ public class MysqlDatabase {
     
     private final TypeRegistry typeRegistry;
 
-    private Queue<IRecord> queue = new ArrayBlockingQueue<>(100); //TODO
+    private Queue<IDataObject> queue = new ArrayBlockingQueue<>(100); //TODO
 
     private final Map<String, Table> tables = new HashMap<>();
     private final String databaseName;
@@ -42,7 +42,7 @@ public class MysqlDatabase {
         this.typeRegistry = typeRegistry;
     }
 
-    public <T extends IRecord> List<T> getRecords(RecordRegistry recordRegistry, Class<T> recordType, String columnName, Object value) {
+    public <T extends IDataObject> List<T> getData(DataObjectRegistry dataObjectRegistry, Class<T> recordType, String columnName, Object value) {
         List<T> records = new LinkedList<>();
         for (Table table : this.tables.values()) {
             String tableName = "";
@@ -67,7 +67,7 @@ public class MysqlDatabase {
                 try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(sql)) {
                     while (resultSet.next()) {
                         Row row = new Row(table, resultSet, this);
-                        records.add(row.getRecord(recordRegistry, recordType));
+                        records.add(row.getRecord(dataObjectRegistry, recordType));
                     }
                 } catch (Exception e) {
                     logger.severe("An error occured: " + e.getMessage());
@@ -75,20 +75,20 @@ public class MysqlDatabase {
             }
         }
 
-        records.sort(Comparator.comparingInt(IRecord::getId));
+        records.sort(Comparator.comparingInt(IDataObject::getId));
         return records;
     }
 
-    public <T extends IRecord> T getRecord(RecordRegistry recordRegistry, Class<T> recordType, String columnName, Object value) {
-        List<T> records = getRecords(recordRegistry, recordType, columnName, value);
+    public <T extends IDataObject> T getAllMatchingData(DataObjectRegistry dataObjectRegistry, Class<T> recordType, String columnName, Object value) {
+        List<T> records = getData(dataObjectRegistry, recordType, columnName, value);
         if (records.isEmpty()) {
             return null;
         }
         return records.get(0);
     }
 
-    public void saveRecord(RecordRegistry recordRegistry, IRecord record) {
-        Table table = recordRegistry.getTableByRecordClass(record.getClass());
+    public void saveData(DataObjectRegistry dataObjectRegistry, IDataObject record) {
+        Table table = dataObjectRegistry.getTableByRecordClass(record.getClass());
         if (table == null)
             return;
         Map<String, Object> serialized = new HashMap<>();
@@ -111,9 +111,9 @@ public class MysqlDatabase {
                 continue;
             }
             
-            if (IRecord.class.isAssignableFrom(field.getType())) {
-                saveRecord(recordRegistry, (IRecord) fieldValue);
-                fieldValue = ((IRecord) fieldValue).getId();
+            if (IDataObject.class.isAssignableFrom(field.getType())) {
+                saveData(dataObjectRegistry, (IDataObject) fieldValue);
+                fieldValue = ((IDataObject) fieldValue).getId();
             }
 
             if (Collection.class.isAssignableFrom(field.getType())) {
@@ -122,9 +122,9 @@ public class MysqlDatabase {
                 List<Integer> recordIds = new ArrayList<>();
                 List<Object> serializedElements = new ArrayList<>();
                 for (Object o : collection) {
-                    if (IRecord.class.isAssignableFrom(o.getClass())) {
-                        IRecord rec = (IRecord) o;
-                        saveRecord(recordRegistry, rec);
+                    if (IDataObject.class.isAssignableFrom(o.getClass())) {
+                        IDataObject rec = (IDataObject) o;
+                        saveData(dataObjectRegistry, rec);
                         collectionContainsRecord = true;
                         recordIds.add(rec.getId());
                     } else {
@@ -245,7 +245,7 @@ public class MysqlDatabase {
         }
     }
 
-    private Object serializeCollection(IRecord record, Field field, Object fieldValue, String join, List<Object> serializedElements) {
+    private Object serializeCollection(IDataObject record, Field field, Object fieldValue, String join, List<Object> serializedElements) {
         if (field.getGenericType() instanceof ParameterizedType paramType) {
             Type[] arguments = paramType.getActualTypeArguments();
             if (arguments != null && arguments.length == 1) {
@@ -257,10 +257,10 @@ public class MysqlDatabase {
         return fieldValue;
     }
 
-    public void saveRecords(RecordRegistry recordRegistry, IRecord... records) {
+    public void saveAllData(DataObjectRegistry dataObjectRegistry, IDataObject... records) {
         if (records != null) {
-            for (IRecord record : records) {
-                saveRecord(recordRegistry, record);
+            for (IDataObject record : records) {
+                saveData(dataObjectRegistry, record);
             }
         }
     }
