@@ -40,21 +40,19 @@ public class ArrayHandler extends DataTypeHandler<Object> {
         String[] valueSplit = value.split(":");
         Class<?> typeClass;
         String rawClass = valueSplit[0];
-        if (rawClass.equals("int"))
-            typeClass = int.class;
-        else if (rawClass.equals("boolean"))
-            typeClass = boolean.class;
-        else if (rawClass.equals("long"))
-            typeClass = long.class;
-        else if (rawClass.equals("double"))
-            typeClass = double.class;
-        else {
-            try {
-                typeClass = Class.forName(rawClass);
-            } catch (Exception e) {
-                return null;
+        typeClass = switch (rawClass) {
+            case "int" -> int.class;
+            case "boolean" -> boolean.class;
+            case "long" -> long.class;
+            case "double" -> double.class;
+            default -> {
+                try {
+                    yield Class.forName(rawClass);
+                } catch (Exception e) {
+                    yield null;
+                }
             }
-        }
+        };
         
         Object array;
         if (valueSplit.length == 2) {
