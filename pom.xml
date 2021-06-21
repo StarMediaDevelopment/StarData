@@ -6,7 +6,7 @@
 
     <groupId>com.starmediadev</groupId>
     <artifactId>star-data</artifactId>
-    <version>1.1.1-SNAPSHOT</version>
+    <version>1.1.2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>StarData</name>
@@ -17,9 +17,16 @@
         <maven.compiler.target>16</maven.compiler.target>
         <java.version>16</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jar.output>${project.basedir}/../Output</jar.output>
+        <jar.output>${user.home}\Documents\JarOutput</jar.output>
     </properties>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>apache.snapshots</id>
+            <url>https://repository.apache.org/snapshots/</url>
+        </pluginRepository>
+    </pluginRepositories>
+    
     <build>
         <plugins>
             <plugin>
@@ -34,7 +41,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.4</version>
+                <version>3.3.0-SNAPSHOT</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -50,10 +57,6 @@
                                 <relocation>
                                     <pattern>com.mysql.</pattern>
                                     <shadedPattern>com.starmediadev.shaded.com.mysql.</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.google</pattern>
-                                    <shadedPattern>com.starmediadev.shaded.com.google</shadedPattern>
                                 </relocation>
                             </relocations>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
