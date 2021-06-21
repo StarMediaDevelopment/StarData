@@ -17,6 +17,7 @@ public final class TypeRegistry {
         typeHandlers.add(new CollectionHandler());
         typeHandlers.add(new DoubleHandler());
         typeHandlers.add(new EnumHandler());
+        typeHandlers.add(new FloatHandler());
         typeHandlers.add(new IntegerHandler());
         typeHandlers.add(new LongHandler());
         typeHandlers.add(new RecordHandler());

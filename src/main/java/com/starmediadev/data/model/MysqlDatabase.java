@@ -17,7 +17,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Logger;
 
 public class MysqlDatabase {
-    private static final String URL = "jdbc:mysql://{hostname}:{port}/{database}?useSSL=false";
+    private static final String URL = "jdbc:mysql://{hostname}:{port}/{database}";
     private final Logger logger;
 
     private final MysqlDataSource dataSource;
@@ -110,6 +110,8 @@ public class MysqlDatabase {
                 logger.severe("Could not access field " + field.getName() + " in class " + record.getClass().getName() + " because " + e.getMessage());
                 continue;
             }
+            
+            if (fieldValue == null) continue;
             
             if (IDataObject.class.isAssignableFrom(field.getType())) {
                 saveData(dataObjectRegistry, (IDataObject) fieldValue);

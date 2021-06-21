@@ -58,28 +58,33 @@ public class SqlProperties {
         return Integer.parseInt(properties.getProperty("mysql-port"));
     }
 
-    public void setDatabase(String database) {
+    public SqlProperties setDatabase(String database) {
         this.properties.put("mysql-database", database);
+        return this;
     }
 
-    public void setHost(String host) {
+    public SqlProperties setHost(String host) {
         if (host != null)
             this.properties.put("mysql-host", host);
+        return this;
     }
 
-    public void setUsername(String username) {
+    public SqlProperties setUsername(String username) {
         if (username != null)
             this.properties.put("mysql-username", username);
+        return this;
     }
 
-    public void setPassword(String password) {
+    public SqlProperties setPassword(String password) {
         if (password != null)
             this.properties.put("mysql-password", password);
+        return this;
     }
 
-    public void setPort(int port) {
+    public SqlProperties setPort(int port) {
         if (port != 0)
             this.properties.put("mysql-port", port + "");
+        return this;
     }
 
     public void save(File file) {
