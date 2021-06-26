@@ -7,7 +7,7 @@ public class Column {
     protected final DataTypeHandler<?> typeHandler;
     protected int length;
     protected final boolean autoIncrement;
-    protected final boolean unique;
+    protected boolean unique;
 
     public Column(String name, DataTypeHandler<?> typeHandler, boolean autoIncrement, boolean unique) {
         this(name, typeHandler, 0, autoIncrement, unique);
@@ -77,5 +77,9 @@ public class Column {
 
     public boolean isUnique() {
         return unique;
+    }
+
+    public void setUnique(boolean value) {
+        this.unique = value;
     }
 }
