@@ -6,7 +6,7 @@
 
     <groupId>com.starmediadev</groupId>
     <artifactId>star-data</artifactId>
-    <version>1.1.2-SNAPSHOT</version>
+    <version>1.1.3-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>StarData</name>
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>com.starmediadev</groupId>
             <artifactId>star-utils</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.2.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

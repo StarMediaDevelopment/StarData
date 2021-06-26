@@ -89,8 +89,10 @@ public class MysqlDatabase {
 
     public void saveData(DataObjectRegistry dataObjectRegistry, IDataObject record) {
         Table table = dataObjectRegistry.getTableByRecordClass(record.getClass());
-        if (table == null)
+        if (table == null) {
+            System.out.println("Table for record " + record.getClass().getSimpleName() + " is null");
             return;
+        }
         Map<String, Object> serialized = new HashMap<>();
         Set<Field> fields = Utils.getClassFields(record.getClass());
 
@@ -110,12 +112,15 @@ public class MysqlDatabase {
                 logger.severe("Could not access field " + field.getName() + " in class " + record.getClass().getName() + " because " + e.getMessage());
                 continue;
             }
+
+            System.out.println("Field " + field.getName() + " has the value " + fieldValue);
             
-            if (fieldValue == null) continue;
+            if (fieldValue == null) {
+                continue;
+            }
             
-            if (IDataObject.class.isAssignableFrom(field.getType())) {
-                saveData(dataObjectRegistry, (IDataObject) fieldValue);
-                fieldValue = ((IDataObject) fieldValue).getId();
+            if (fieldValue instanceof IDataObject dataObject) {
+                saveData(dataObjectRegistry, dataObject);
             }
 
             if (Collection.class.isAssignableFrom(field.getType())) {
@@ -124,8 +129,7 @@ public class MysqlDatabase {
                 List<Integer> recordIds = new ArrayList<>();
                 List<Object> serializedElements = new ArrayList<>();
                 for (Object o : collection) {
-                    if (IDataObject.class.isAssignableFrom(o.getClass())) {
-                        IDataObject rec = (IDataObject) o;
+                    if (o instanceof IDataObject rec) {
                         saveData(dataObjectRegistry, rec);
                         collectionContainsRecord = true;
                         recordIds.add(rec.getId());
@@ -162,8 +166,9 @@ public class MysqlDatabase {
             if (column.isUnique()) {
                 unique = column;
                 break;
-            } else if (column.getTypeHandler().getMysqlType().equals(DataType.INT) || column.getName().equalsIgnoreCase("id")) {
+            } else if (column.getName().equalsIgnoreCase("id")) {
                 unique = column;
+                unique.setUnique(true);
                 break;
             }
         }
