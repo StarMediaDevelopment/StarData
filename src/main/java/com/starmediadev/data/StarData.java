@@ -1,7 +1,6 @@
 package com.starmediadev.data;
 
 import com.starmediadev.data.manager.DatabaseManager;
-import com.starmediadev.data.manager.MultiDatabaseManager;
 import com.starmediadev.data.manager.SingleDatabaseManager;
 import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.data.registries.TypeRegistry;
@@ -41,7 +40,8 @@ public class StarData {
         if (context == Context.SINGLE) {
             manager = new SingleDatabaseManager(logger, dataObjectRegistry, typeRegistry);
         } else if (context == Context.MULTI) {
-            manager = new MultiDatabaseManager(logger, dataObjectRegistry, typeRegistry);
+            throw new IllegalStateException("Multidatabase support is not yet implemented.");
+            // manager = new MultiDatabaseManager(logger, dataObjectRegistry, typeRegistry);
         }
     }
     
