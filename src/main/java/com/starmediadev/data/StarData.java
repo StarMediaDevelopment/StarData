@@ -7,6 +7,7 @@ import com.starmediadev.data.registries.TypeRegistry;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -23,7 +24,9 @@ public class StarData {
     
     static {
         try {
-            Object o = Class.forName("com.mysql.cj.jdbc.Driver").newInstance();
+            Class<?> sqlDriver = Class.forName("com.mysql.cj.jdbc.Driver");
+            Constructor<?> constructor = sqlDriver.getDeclaredConstructor();
+            Object o = constructor.newInstance();
             driverClass = o.getClass().getName();
         } catch (Exception e) {
             e.printStackTrace();
