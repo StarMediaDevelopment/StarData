@@ -113,8 +113,6 @@ public class MysqlDatabase {
                 continue;
             }
 
-            System.out.println("Field " + field.getName() + " has the value " + fieldValue);
-            
             if (fieldValue == null) {
                 continue;
             }
@@ -166,10 +164,6 @@ public class MysqlDatabase {
             if (column.isUnique()) {
                 unique = column;
                 break;
-            } else if (column.getName().equalsIgnoreCase("id")) {
-                unique = column;
-                unique.setUnique(true);
-                break;
             }
         }
 
@@ -213,6 +207,7 @@ public class MysqlDatabase {
                     statement.execute(querySQL);
                 } catch (Exception e) {
                     e.printStackTrace();
+                    System.out.println(querySQL);
                 }
             }
         }
@@ -222,7 +217,10 @@ public class MysqlDatabase {
             Iterator<Column> columnIterator = table.getColumns().iterator();
             while (columnIterator.hasNext()) {
                 Column column = columnIterator.next();
-                if (column.isUnique()) {
+                if (column.isUnique() && !columnIterator.hasNext()) {
+                    System.out.println("Column " + column.getName() + " is unique and there is no next values");
+                    colBuilder.deleteCharAt(colBuilder.lastIndexOf(","));
+                    valueBuilder.deleteCharAt(valueBuilder.lastIndexOf(","));
                     continue;
                 }
                 colBuilder.append("`").append(column.getName()).append("`");
@@ -248,6 +246,7 @@ public class MysqlDatabase {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                System.out.println(querySQL);
             }
         }
     }
