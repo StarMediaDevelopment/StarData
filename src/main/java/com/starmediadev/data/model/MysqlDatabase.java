@@ -21,7 +21,7 @@ public class MysqlDatabase {
     private final Logger logger;
 
     private final MysqlDataSource dataSource;
-    
+
     private final TypeRegistry typeRegistry;
 
     private Queue<IDataObject> queue = new ArrayBlockingQueue<>(100); //TODO
@@ -75,7 +75,7 @@ public class MysqlDatabase {
             }
         }
 
-        records.sort(Comparator.comparingInt(IDataObject::getId));
+        records.sort(Comparator.comparingInt(object -> object.getDataInfo().getId()));
         return records;
     }
 
@@ -98,6 +98,12 @@ public class MysqlDatabase {
 
         for (Field field : fields) {
             field.setAccessible(true);
+
+            if (DataInfo.class.isAssignableFrom(field.getType())) {
+                serialized.put("id", record.getDataInfo().getId());
+                continue;
+            }
+
             ColumnInfo columnInfo = field.getAnnotation(ColumnInfo.class);
             if (columnInfo != null) {
                 if (columnInfo.ignored()) {
@@ -116,7 +122,7 @@ public class MysqlDatabase {
             if (fieldValue == null) {
                 continue;
             }
-            
+
             if (fieldValue instanceof IDataObject dataObject) {
                 saveData(dataObjectRegistry, dataObject);
             }
@@ -130,20 +136,20 @@ public class MysqlDatabase {
                     if (o instanceof IDataObject rec) {
                         saveData(dataObjectRegistry, rec);
                         collectionContainsRecord = true;
-                        recordIds.add(rec.getId());
+                        recordIds.add(rec.getDataInfo().getId());
                     } else {
                         DataTypeHandler<?> handler = typeRegistry.getHandler(o.getClass());
                         if (handler == null) {
                             logger.severe("Element type " + o.getClass().getName() + " of the field " + field.getName() + " of the record " + record.getClass().getName() + " does not have a DataTypeHandler and is not a Record");
                             break;
                         }
-                        
+
                         serializedElements.add(handler.serializeSql(o));
                     }
                 }
                 if (collectionContainsRecord) {
                     fieldValue = serializeCollection(record, field, fieldValue, Utils.join(recordIds, ","), serializedElements);
-                } else if (!serializedElements.isEmpty()){
+                } else if (!serializedElements.isEmpty()) {
                     fieldValue = serializeCollection(record, field, fieldValue, Utils.join(serializedElements, ","), serializedElements);
                 }
             }
@@ -153,62 +159,54 @@ public class MysqlDatabase {
                 logger.severe("There is no DataTypeHandler for field " + field.getName() + " in class " + record.getClass().getName());
                 continue;
             }
-            
+
             if (fieldValue != null) {
                 serialized.put(field.getName(), handler.serializeSql(fieldValue));
             }
         }
 
-        Column unique = null;
-        for (Column column : table.getColumns()) {
-            if (column.isUnique()) {
-                unique = column;
-                break;
-            }
-        }
+        DataInfo dataInfo = record.getDataInfo();
 
         String querySQL = null;
         Iterator<Map.Entry<String, Object>> iterator = serialized.entrySet().iterator();
 
-        if (unique != null) {
-            String where = Statements.WHERE.replace("{column}", unique.getName()).replace("{value}", serialized.get(unique.getName()) + "");
-            String selectSql = Statements.SELECT.replace("{database}", this.databaseName).replace("{table}", table.getName()) + " " + where;
+        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", dataInfo.getId() + "");
+        String selectSql = Statements.SELECT.replace("{database}", this.databaseName).replace("{table}", table.getName()) + " " + where;
 
-            try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement(); ResultSet resultSet = statement.executeQuery(selectSql)) {
-                if (resultSet.next()) {
-                    Row row = new Row(table, resultSet, this);
-                    if (!row.getDataMap().isEmpty()) {
-                        StringBuilder sb = new StringBuilder();
+        try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement(); ResultSet resultSet = statement.executeQuery(selectSql)) {
+            if (resultSet.next()) {
+                Row row = new Row(table, resultSet, this);
+                if (!row.getDataMap().isEmpty()) {
+                    StringBuilder sb = new StringBuilder();
 
-                        while (iterator.hasNext()) {
-                            Map.Entry<String, Object> entry = iterator.next();
-                            if (entry.getValue() != null) {
-                                DataType type = typeRegistry.getHandler(entry.getValue().getClass()).getMysqlType();
-                                if (type == null) {
-                                    continue;
-                                }
-                                sb.append(Statements.UPDATE_VALUE.replace("{column}", entry.getKey()).replace("{value}", entry.getValue() + ""));
-                                if (iterator.hasNext()) {
-                                    sb.append(",");
-                                }
+                    while (iterator.hasNext()) {
+                        Map.Entry<String, Object> entry = iterator.next();
+                        if (entry.getValue() != null) {
+                            DataType type = typeRegistry.getHandler(entry.getValue().getClass()).getMysqlType();
+                            if (type == null) {
+                                continue;
+                            }
+                            sb.append(Statements.UPDATE_VALUE.replace("{column}", entry.getKey()).replace("{value}", entry.getValue() + ""));
+                            if (iterator.hasNext()) {
+                                sb.append(",");
                             }
                         }
-
-                        querySQL = Statements.UPDATE.replace("{values}", sb.toString()).replace("{location}", unique.getName() + "=" + serialized.get(unique.getName()));
-                        querySQL = querySQL.replace("{table}", table.getName()).replace("{database}", databaseName);
                     }
+
+                    querySQL = Statements.UPDATE.replace("{values}", sb.toString()).replace("{location}", "id=" + dataInfo.getId());
+                    querySQL = querySQL.replace("{table}", table.getName()).replace("{database}", databaseName);
                 }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (querySQL != null && !querySQL.equals("")) {
+            try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+                statement.execute(querySQL);
             } catch (Exception e) {
                 e.printStackTrace();
-            }
-
-            if (querySQL != null && !querySQL.equals("")) {
-                try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
-                    statement.execute(querySQL);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.out.println(querySQL);
-                }
+                System.out.println(querySQL);
             }
         }
 
@@ -241,7 +239,7 @@ public class MysqlDatabase {
                 }
                 try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
-                        record.setId(generatedKeys.getInt(1));
+                        record.getDataInfo().setId(generatedKeys.getInt(1));
                     }
                 }
             } catch (Exception e) {
@@ -257,7 +255,8 @@ public class MysqlDatabase {
             if (arguments != null && arguments.length == 1) {
                 try {
                     fieldValue = field.get(record).getClass().getName() + ":" + arguments[0].getTypeName() + ":" + join;
-                } catch (IllegalAccessException e) { }
+                } catch (IllegalAccessException e) {
+                }
             }
         }
         return fieldValue;
@@ -366,13 +365,13 @@ public class MysqlDatabase {
             logger.severe("A table for the class " + object.getClass().getName() + " has not been registered.");
             return;
         }
-        
-        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", object.getId() + "");
+
+        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", object.getDataInfo().getId() + "");
         String deleteSql = Statements.DELETE.replace("{database}", this.databaseName).replace("{table}", table.getName());
         try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement()) {
             statement.execute(deleteSql + " " + where);
         } catch (Exception e) {
-            
+
         }
     }
 }

@@ -3,7 +3,7 @@ package com.starmediadev.data.model;
 import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.handlers.CollectionHandler;
 import com.starmediadev.data.handlers.DataTypeHandler;
-import com.starmediadev.data.handlers.RecordHandler;
+import com.starmediadev.data.handlers.DataObjectHandler;
 import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.utils.Utils;
 
@@ -53,6 +53,16 @@ class Row {
                     if (columnInfo.ignored())
                         continue;
                 }
+                
+                if (DataInfo.class.isAssignableFrom(field.getType())) {
+                    if (field.get(record) == null) {
+                        field.set(record, new DataInfo((Integer) this.dataMap.get("id"), this.database.getDatabaseName()));
+                    } else {
+                        record.getDataInfo().setId((Integer) this.dataMap.get("id"));
+                        record.getDataInfo().setName(this.database.getDatabaseName());
+                    }
+                    continue;
+                }
                 String columnName = field.getName();
                 Column column = table.getColumn(columnName);
                 Object object = null;
@@ -89,7 +99,7 @@ class Row {
                             object = collection;
                         } catch (Exception e) {
                         }
-                    } else if (column.getTypeHandler() instanceof RecordHandler) {
+                    } else if (column.getTypeHandler() instanceof DataObjectHandler) {
                         object = database.getData(dataObjectRegistry, ((Class<? extends IDataObject>) field.getType()), "id", this.dataMap.get(field.getName())); //TODO
                     } else {
                         object = column.getTypeHandler().deserialize(dataObject, field.getType());

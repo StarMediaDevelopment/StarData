@@ -39,7 +39,7 @@ public class SingleDatabaseManager extends DatabaseManager {
     }
 
     public void deleteData(IDataObject object) {
-        this.database.deleteData(object);
+        this.database.deleteData(dataObjectRegistry, object);
     }
 
     public void generate() {

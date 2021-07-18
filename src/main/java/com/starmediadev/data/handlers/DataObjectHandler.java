@@ -3,9 +3,9 @@ package com.starmediadev.data.handlers;
 import com.starmediadev.data.model.DataType;
 import com.starmediadev.data.model.IDataObject;
 
-public class RecordHandler extends DataTypeHandler<IDataObject> {
+public class DataObjectHandler extends DataTypeHandler<IDataObject> {
 
-    public RecordHandler() {
+    public DataObjectHandler() {
         super(IDataObject.class, DataType.INT);
     }
 

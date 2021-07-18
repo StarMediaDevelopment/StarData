@@ -20,7 +20,7 @@ public final class TypeRegistry {
         typeHandlers.add(new FloatHandler());
         typeHandlers.add(new IntegerHandler());
         typeHandlers.add(new LongHandler());
-        typeHandlers.add(new RecordHandler());
+        typeHandlers.add(new DataObjectHandler());
         typeHandlers.add(new StringHandler());
         typeHandlers.add(new UUIDHandler());
     }

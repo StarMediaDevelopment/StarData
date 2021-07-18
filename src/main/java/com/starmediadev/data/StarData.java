@@ -14,14 +14,14 @@ import java.util.logging.Logger;
 public class StarData {
     public static String driverClass;
     private Context context;
-    
+
     private TypeRegistry typeRegistry;
     private DataObjectRegistry dataObjectRegistry;
-    
-    private DatabaseManager manager;
-    
+
+    private DatabaseManager databaseManager;
+
     private Logger logger;
-    
+
     static {
         try {
             Class<?> sqlDriver = Class.forName("com.mysql.cj.jdbc.Driver");
@@ -32,22 +32,14 @@ public class StarData {
             e.printStackTrace();
         }
     }
-    
-    public StarData(Context context, Logger logger) {
-        this.context = context;
+
+    public StarData(Logger logger) {
         this.logger = logger;
-        
+
         typeRegistry = TypeRegistry.createInstance(logger);
         dataObjectRegistry = DataObjectRegistry.createInstance(logger, typeRegistry);
-        
-        if (context == Context.SINGLE) {
-            manager = new SingleDatabaseManager(logger, dataObjectRegistry, typeRegistry);
-        } else if (context == Context.MULTI) {
-            throw new IllegalStateException("Multidatabase support is not yet implemented.");
-            // manager = new MultiDatabaseManager(logger, dataObjectRegistry, typeRegistry);
-        }
     }
-    
+
     public static Logger createLogger(Class<?> clazz) {
         InputStream stream = StarData.class.getClassLoader().getResourceAsStream("logging.properties");
         try {
@@ -59,12 +51,13 @@ public class StarData {
         Logger logger = Logger.getLogger(clazz.getName());
         try {
             stream.close();
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
         return logger;
     }
-    
+
     public DatabaseManager getDatabaseManager() {
-        return manager;
+        return databaseManager;
     }
 
     public TypeRegistry getTypeRegistry() {
@@ -77,5 +70,9 @@ public class StarData {
 
     public Logger getLogger() {
         return logger;
+    }
+    
+    public void setDatabaseManager(DatabaseManager databaseManager) {
+        this.databaseManager = databaseManager;
     }
 }

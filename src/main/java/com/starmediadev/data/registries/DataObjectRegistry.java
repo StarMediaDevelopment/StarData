@@ -4,6 +4,7 @@ import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.annotations.TableInfo;
 import com.starmediadev.data.handlers.DataTypeHandler;
 import com.starmediadev.data.model.Column;
+import com.starmediadev.data.model.DataInfo;
 import com.starmediadev.data.model.IDataObject;
 import com.starmediadev.data.model.Table;
 import com.starmediadev.utils.Utils;
@@ -19,18 +20,18 @@ public final class DataObjectRegistry {
     private final Set<Class<? extends IDataObject>> types = new HashSet<>();
     private final Set<Table> tables = new HashSet<>();
     private final Logger logger;
-    
+
     private final Map<String, String> objectTypeToTableMap = new HashMap<>();
-    
+
     public static DataObjectRegistry createInstance(Logger logger, TypeRegistry typeRegistry) {
         return new DataObjectRegistry(logger, typeRegistry);
     }
-    
+
     private DataObjectRegistry(Logger logger, TypeRegistry typeRegistry) {
         this.logger = logger;
         this.typeRegistry = typeRegistry;
     }
-    
+
     public Table register(Class<? extends IDataObject> recordClass) {
         Table table = getTableByDataClass(recordClass);
         if (table == null) {
@@ -41,14 +42,15 @@ public final class DataObjectRegistry {
                 return null;
             }
 
-            try {
-                Field id = recordClass.getDeclaredField("id");
-                if (!(id.getType().isAssignableFrom(int.class) || id.getType().isAssignableFrom(long.class))) {
-                    logger.severe("The ID field is not of type int or long");
-                    return null;
+            Field dataInfoField = null;
+            for (Field classField : Utils.getClassFields(recordClass)) {
+                if (DataInfo.class.isAssignableFrom(classField.getType())) {
+                    dataInfoField = classField;
                 }
-            } catch (NoSuchFieldException e) {
-                logger.severe("Could not find an id field in the record " + recordClass.getName());
+            }
+            
+            if (dataInfoField == null) {
+                logger.severe("Could not find a DataInfo field in the IDataObject class " + recordClass.getName());
                 return null;
             }
 
@@ -56,13 +58,22 @@ public final class DataObjectRegistry {
             Map<String, Column> columns = new HashMap<>();
             for (Field field : fields) {
                 field.setAccessible(true);
+                if (field.getName().equalsIgnoreCase(dataInfoField.getName())) {
+                    columns.put("id", new Column("id", typeRegistry.getHandler(Integer.class), true, true));
+                    continue;
+                }
+                
+                if (field.getName().equalsIgnoreCase("id")) {
+                    logger.severe("The IDataObject class " + recordClass.getName() + " has a field with the name id that is not the DataInfo field, this cannot be used.");
+                    return null;
+                }
                 ColumnInfo columnInfo = field.getAnnotation(ColumnInfo.class);
                 if (columnInfo != null) {
                     if (columnInfo.ignored()) {
                         continue;
                     }
                 }
-                
+
                 if (Collection.class.isAssignableFrom(field.getType())) {
                     Type genericType = field.getGenericType();
                     if (genericType instanceof ParameterizedType pt) {
@@ -77,7 +88,7 @@ public final class DataObjectRegistry {
                         }
                     }
                 }
-                
+
                 if (field.getType().isArray()) {
                     Class<?> compType = field.getType().getComponentType();
                     if (!IDataObject.class.isAssignableFrom(compType) && typeRegistry.getHandler(compType) == null) {
@@ -89,12 +100,9 @@ public final class DataObjectRegistry {
                 DataTypeHandler<?> handler;
                 String colName = field.getName();
                 int colLength = 0;
-                boolean colAutoIncrement = false, colUnique = false;
 
                 if (columnInfo != null) {
                     colLength = columnInfo.length();
-                    //colAutoIncrement = columnInfo.autoIncrement();
-                    //colUnique = columnInfo.unique();
                     if (columnInfo.name() != null && !columnInfo.name().equals("")) {
                         colName = columnInfo.name();
                     }
@@ -105,15 +113,8 @@ public final class DataObjectRegistry {
                     logger.severe("Field " + field.getName() + " which has the type " + field.getType().getName() + " of the record " + recordClass.getName() + " is not a record, nor can it be handled.");
                     return null;
                 }
-                
-                if (field.getName().equalsIgnoreCase("id")) {
-                    if (field.getType().isAssignableFrom(int.class) || field.getType().isAssignableFrom(long.class)) {
-                        colAutoIncrement = true;
-                        colUnique = true;
-                    }
-                }
 
-                columns.put(field.getName(), new Column(colName, handler, colLength, colAutoIncrement, colUnique));
+                columns.put(field.getName(), new Column(colName, handler, colLength));
             }
 
             String tableName = "";
@@ -142,7 +143,7 @@ public final class DataObjectRegistry {
                 tableName = entry.getValue();
             }
         }
-        
+
         if (tableName == null) {
             return null;
         }
