@@ -61,7 +61,7 @@ public class MysqlDatabase {
 
                 try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(sql)) {
                     while (resultSet.next()) {
-                        Row row = new Row(table, resultSet, this);
+                        Row row = new Row(table, resultSet, this, dataSource);
                         records.add(row.getRecord(dataObjectRegistry, recordType));
                     }
                 } catch (Exception e) {
@@ -70,7 +70,7 @@ public class MysqlDatabase {
             }
         }
 
-        records.sort(Comparator.comparingInt(object -> object.getDataInfo().getId()));
+        records.sort(Comparator.comparingInt(object -> object.getDataInfo().getId(databaseName)));
         return records;
     }
 
@@ -95,7 +95,7 @@ public class MysqlDatabase {
             field.setAccessible(true);
 
             if (DataInfo.class.isAssignableFrom(field.getType())) {
-                serialized.put("id", record.getDataInfo().getId());
+                serialized.put("id", record.getDataInfo().getId(databaseName));
                 continue;
             }
 
@@ -131,7 +131,7 @@ public class MysqlDatabase {
                     if (o instanceof IDataObject rec) {
                         saveData(dataSource, rec);
                         collectionContainsRecord = true;
-                        recordIds.add(rec.getDataInfo().getId());
+                        recordIds.add(rec.getDataInfo().getId(databaseName));
                     } else {
                         DataTypeHandler<?> handler = typeRegistry.getHandler(o.getClass());
                         if (handler == null) {
@@ -165,12 +165,12 @@ public class MysqlDatabase {
         String querySQL = null;
         Iterator<Map.Entry<String, Object>> iterator = serialized.entrySet().iterator();
 
-        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", dataInfo.getId() + "");
+        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", dataInfo.getId(databaseName) + "");
         String selectSql = Statements.SELECT.replace("{database}", this.databaseName).replace("{table}", table.getName()) + " " + where;
 
         try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement(); ResultSet resultSet = statement.executeQuery(selectSql)) {
             if (resultSet.next()) {
-                Row row = new Row(table, resultSet, this);
+                Row row = new Row(table, resultSet, this, dataSource);
                 if (!row.getDataMap().isEmpty()) {
                     StringBuilder sb = new StringBuilder();
 
@@ -188,7 +188,7 @@ public class MysqlDatabase {
                         }
                     }
 
-                    querySQL = Statements.UPDATE.replace("{values}", sb.toString()).replace("{location}", "id=" + dataInfo.getId());
+                    querySQL = Statements.UPDATE.replace("{values}", sb.toString()).replace("{location}", "id=" + dataInfo.getId(databaseName));
                     querySQL = querySQL.replace("{table}", table.getName()).replace("{database}", databaseName);
                 }
             }
@@ -234,7 +234,7 @@ public class MysqlDatabase {
                 }
                 try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
-                        record.getDataInfo().setId(generatedKeys.getInt(1));
+                        record.getDataInfo().addMapping(databaseName, generatedKeys.getInt(1));
                     }
                 }
             } catch (Exception e) {
@@ -361,7 +361,7 @@ public class MysqlDatabase {
             return;
         }
 
-        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", object.getDataInfo().getId() + "");
+        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", object.getDataInfo().getId(databaseName) + "");
         String deleteSql = Statements.DELETE.replace("{database}", this.databaseName).replace("{table}", table.getName());
         try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement()) {
             statement.execute(deleteSql + " " + where);

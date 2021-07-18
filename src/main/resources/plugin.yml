@@ -2,3 +2,6 @@ name: StarData
 version: ${project.version}
 main: com.starmediadev.plugins.data.StarDataPlugin
 api-version: 1.17
+commands: 
+  testdatabase:
+    aliases: [tdb]

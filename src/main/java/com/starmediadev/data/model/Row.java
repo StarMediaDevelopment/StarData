@@ -17,12 +17,14 @@ import java.util.Set;
 
 class Row {
     private final MysqlDatabase database;
+    private final MysqlDataSource source;
     protected final Map<String, Object> dataMap = new HashMap<>();
     protected final Table table;
 
-    public Row(Table table, ResultSet resultSet, MysqlDatabase database) {
+    public Row(Table table, ResultSet resultSet, MysqlDatabase database, MysqlDataSource source) {
         this.table = table;
         this.database = database;
+        this.source = source;
         for (Column column : table.getColumns()) {
             try {
                 this.dataMap.put(column.getName(), resultSet.getObject(column.getName()));
@@ -56,10 +58,11 @@ class Row {
                 
                 if (DataInfo.class.isAssignableFrom(field.getType())) {
                     if (field.get(record) == null) {
-                        field.set(record, new DataInfo((Integer) this.dataMap.get("id"), this.database.getDatabaseName()));
+                        DataInfo dataInfo = new DataInfo();
+                        dataInfo.addMapping(database.getDatabaseName(), (Integer) this.dataMap.get("id"));
+                        field.set(record, dataInfo);
                     } else {
-                        record.getDataInfo().setId((Integer) this.dataMap.get("id"));
-                        record.getDataInfo().setName(this.database.getDatabaseName());
+                        record.getDataInfo().addMapping(database.getDatabaseName(), (Integer) this.dataMap.get("id"));
                     }
                     continue;
                 }
@@ -83,7 +86,7 @@ class Row {
                             for (String e : elementSplit) {
                                 if (IDataObject.class.isAssignableFrom(elementType)) {
                                     int id = Integer.parseInt(e);
-                                    IDataObject colRecord = database.getData(dataObjectRegistry, (Class<? extends IDataObject>) elementType, "id", id);
+                                    IDataObject colRecord = database.getData(source, (Class<? extends IDataObject>) elementType, "id", id);
                                     collection.add(colRecord);
                                 } else {
                                     DataTypeHandler<?> handler = database.getTypeRegistry().getHandler(elementType);
@@ -100,7 +103,7 @@ class Row {
                         } catch (Exception e) {
                         }
                     } else if (column.getTypeHandler() instanceof DataObjectHandler) {
-                        object = database.getData(dataObjectRegistry, ((Class<? extends IDataObject>) field.getType()), "id", this.dataMap.get(field.getName())); //TODO
+                        object = database.getData(source, ((Class<? extends IDataObject>) field.getType()), "id", this.dataMap.get(field.getName()));
                     } else {
                         object = column.getTypeHandler().deserialize(dataObject, field.getType());
                     }

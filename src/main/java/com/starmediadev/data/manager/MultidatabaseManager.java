@@ -37,8 +37,39 @@ public class MultidatabaseManager extends DatabaseManager {
     }
     
     public void saveData(IDataObject record) {
-        Pair<MysqlDatabase, MysqlDataSource> result = getDatabaseAndSource(record);
-        result.getValue1().saveData(result.getValue2(), record);
+        List<String> rawDatabases = new ArrayList<>();
+        
+        if (record.getDataInfo().getMappings().isEmpty()) {
+            rawDatabases.addAll(record.getDataInfo().getDatabases());
+        } else {
+            rawDatabases.addAll(record.getDataInfo().getMappings().keySet());
+        }
+
+        Table table = dataObjectRegistry.getTableByDataClass(record.getClass());
+        List<MysqlDatabase> databases = new ArrayList<>();
+        if (!databases.isEmpty()) {
+            for (String database : rawDatabases) {
+                MysqlDatabase mysqlDatabase = this.databases.get(database);
+                if (mysqlDatabase == null) {
+                    return;
+                }
+                
+                databases.add(mysqlDatabase);
+            }
+        } else {
+            for (MysqlDatabase database : this.databases.values()) {
+                if (database.getTables().containsKey(table.getName())) {
+                   databases.add(database);
+                }
+            }
+        }
+
+        for (MysqlDatabase database : databases) {
+            if (database.getTables().containsKey(table.getName())) {
+                MysqlDataSource dataSource = this.dataSources.get(database.getHost().toLowerCase());
+                database.saveData(dataSource, record);
+            }
+        }
     }
 
     public void saveAllData(IDataObject... records) {
@@ -65,25 +96,19 @@ public class MultidatabaseManager extends DatabaseManager {
         }
     }
     
-    private Pair<MysqlDatabase, MysqlDataSource> getDatabaseAndSource(IDataObject object) {
-        MysqlDatabase mysqlDatabase = this.databases.get(object.getDataInfo().getName());
-        MysqlDataSource dataSource = this.dataSources.get(mysqlDatabase.getHost().toLowerCase());
-        if (mysqlDatabase == null) {
-            logger.severe("The database instance for the record " + object.getClass().getName() + " is null.");
-            return null;
-        }
-
-        if (dataSource == null) {
-            logger.severe("The data source instance for the record " + object.getClass().getName() + " and the database " + mysqlDatabase.getDatabaseName() + " is null");
-            return null;
-        }
-        
-        return new Pair<>(mysqlDatabase, dataSource);
-    }
-    
     public void deleteData(IDataObject object) {
-        Pair<MysqlDatabase, MysqlDataSource> result = getDatabaseAndSource(object);
-        result.getValue1().deleteData(result.getValue2(), object);
+        object.getDataInfo().getMappings().forEach((database, id) -> {
+            MysqlDatabase mysqlDatabase = this.databases.get(database);
+            if (mysqlDatabase == null) {
+                return;
+            }
+
+            Table table = dataObjectRegistry.getTableByDataClass(object.getClass());
+            if (mysqlDatabase.getTables().containsKey(table.getName())) {
+                MysqlDataSource dataSource = this.dataSources.get(mysqlDatabase.getHost().toLowerCase());
+                mysqlDatabase.deleteData(dataSource, object);
+            }
+        });
     }
 
     public void generate() {
