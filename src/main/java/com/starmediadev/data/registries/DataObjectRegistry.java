@@ -16,11 +16,11 @@ import java.util.logging.Logger;
 
 public final class DataObjectRegistry {
     private final TypeRegistry typeRegistry;
-    private final Set<Class<? extends IDataObject>> records = new HashSet<>();
+    private final Set<Class<? extends IDataObject>> types = new HashSet<>();
     private final Set<Table> tables = new HashSet<>();
     private final Logger logger;
     
-    private final Map<String, String> recordToTableMap = new HashMap<>();
+    private final Map<String, String> objectTypeToTableMap = new HashMap<>();
     
     public static DataObjectRegistry createInstance(Logger logger, TypeRegistry typeRegistry) {
         return new DataObjectRegistry(logger, typeRegistry);
@@ -32,7 +32,7 @@ public final class DataObjectRegistry {
     }
     
     public Table register(Class<? extends IDataObject> recordClass) {
-        Table table = getTableByRecordClass(recordClass);
+        Table table = getTableByDataClass(recordClass);
         if (table == null) {
             try {
                 recordClass.getDeclaredConstructor();
@@ -129,15 +129,15 @@ public final class DataObjectRegistry {
         }
 
         table.setRecordName(recordClass.getName());
-        records.add(recordClass);
+        types.add(recordClass);
         tables.add(table);
-        recordToTableMap.put(recordClass.getName(), table.getName());
+        objectTypeToTableMap.put(recordClass.getName(), table.getName());
         return table;
     }
 
-    public Table getTableByRecordClass(Class<? extends IDataObject> recordClass) {
+    public Table getTableByDataClass(Class<? extends IDataObject> recordClass) {
         String tableName = null;
-        for (Map.Entry<String, String> entry : recordToTableMap.entrySet()) {
+        for (Map.Entry<String, String> entry : objectTypeToTableMap.entrySet()) {
             if (recordClass.getName().equalsIgnoreCase(entry.getKey())) {
                 tableName = entry.getValue();
             }
@@ -156,8 +156,8 @@ public final class DataObjectRegistry {
         return null;
     }
 
-    public Class<? extends IDataObject> getRecordClassByTable(Table table) {
-        for (Class<? extends IDataObject> record : records) {
+    public Class<? extends IDataObject> getDataClassByTable(Table table) {
+        for (Class<? extends IDataObject> record : types) {
             if (record.getName().equalsIgnoreCase(table.getRecordName())) {
                 return record;
             }
@@ -165,8 +165,8 @@ public final class DataObjectRegistry {
         return null;
     }
 
-    public Class<? extends IDataObject> getRecordByClassName(String name) {
-        for (Class<? extends IDataObject> record : records) {
+    public Class<? extends IDataObject> getClassByName(String name) {
+        for (Class<? extends IDataObject> record : types) {
             if (record.getName().equalsIgnoreCase(name)) {
                 return record;
             }

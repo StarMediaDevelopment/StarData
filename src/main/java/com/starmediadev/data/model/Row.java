@@ -38,7 +38,7 @@ class Row {
 
     public <T extends IDataObject> T getRecord(DataObjectRegistry dataObjectRegistry, Class<T> recordClass) {
         try {
-            Table table = dataObjectRegistry.getTableByRecordClass(recordClass);
+            Table table = dataObjectRegistry.getTableByDataClass(recordClass);
             Constructor<?> constructor = recordClass.getDeclaredConstructor();
             if (constructor == null) {
                 return null;
@@ -73,7 +73,7 @@ class Row {
                             for (String e : elementSplit) {
                                 if (IDataObject.class.isAssignableFrom(elementType)) {
                                     int id = Integer.parseInt(e);
-                                    IDataObject colRecord = database.getAllMatchingData(dataObjectRegistry, (Class<? extends IDataObject>) elementType, "id", id);
+                                    IDataObject colRecord = database.getData(dataObjectRegistry, (Class<? extends IDataObject>) elementType, "id", id);
                                     collection.add(colRecord);
                                 } else {
                                     DataTypeHandler<?> handler = database.getTypeRegistry().getHandler(elementType);
@@ -90,7 +90,7 @@ class Row {
                         } catch (Exception e) {
                         }
                     } else if (column.getTypeHandler() instanceof RecordHandler) {
-                        object = database.getAllMatchingData(dataObjectRegistry, ((Class<? extends IDataObject>) field.getType()), "id", this.dataMap.get(field.getName())); //TODO
+                        object = database.getData(dataObjectRegistry, ((Class<? extends IDataObject>) field.getType()), "id", this.dataMap.get(field.getName())); //TODO
                     } else {
                         object = column.getTypeHandler().deserialize(dataObject, field.getType());
                     }

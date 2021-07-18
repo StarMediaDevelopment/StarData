@@ -18,35 +18,39 @@ public class SingleDatabaseManager extends DatabaseManager {
         super(logger, dataObjectRegistry, typeRegistry);
     }
 
-    public MysqlDatabase createDatabase(SqlProperties properties) {
+    public MysqlDatabase setupDatabase(SqlProperties properties) {
         database = new MysqlDatabase(logger, properties, typeRegistry);
         return database;
     }
 
-    public void saveRecord(IDataObject record) {
+    public void saveData(IDataObject record) {
         database.saveData(dataObjectRegistry, record);
     }
 
-    public void saveRecords(IDataObject... records) {
+    public void saveAllData(IDataObject... records) {
         database.saveAllData(dataObjectRegistry, records);
     }
 
     public void registerTable(Table table) {
         database.addTable(table);
         if (this.setup) {
-            generateTables();
+            generate();
         }
     }
 
-    public void generateTables() {
+    public void deleteData(IDataObject object) {
+        this.database.deleteData(object);
+    }
+
+    public void generate() {
         database.generateTables();
     }
 
-    public <T extends IDataObject> T getRecord(Class<T> recordType, String columnName, Object value) {
-        return database.getAllMatchingData(this.dataObjectRegistry, recordType, columnName, value);
+    public <T extends IDataObject> T getData(Class<T> recordType, String columnName, Object value) {
+        return database.getData(this.dataObjectRegistry, recordType, columnName, value);
     }
 
-    public <T extends IDataObject> List<T> getRecords(Class<T> recordType, String columnName, Object value) {
-        return database.getData(dataObjectRegistry, recordType, columnName, value);
+    public <T extends IDataObject> List<T> getAllData(Class<T> recordType, String columnName, Object value) {
+        return database.getAllData(dataObjectRegistry, recordType, columnName, value);
     }
 }

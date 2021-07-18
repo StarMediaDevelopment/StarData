@@ -42,7 +42,7 @@ public class MysqlDatabase {
         this.typeRegistry = typeRegistry;
     }
 
-    public <T extends IDataObject> List<T> getData(DataObjectRegistry dataObjectRegistry, Class<T> recordType, String columnName, Object value) {
+    public <T extends IDataObject> List<T> getAllData(DataObjectRegistry dataObjectRegistry, Class<T> recordType, String columnName, Object value) {
         List<T> records = new LinkedList<>();
         for (Table table : this.tables.values()) {
             String tableName = "";
@@ -79,8 +79,8 @@ public class MysqlDatabase {
         return records;
     }
 
-    public <T extends IDataObject> T getAllMatchingData(DataObjectRegistry dataObjectRegistry, Class<T> recordType, String columnName, Object value) {
-        List<T> records = getData(dataObjectRegistry, recordType, columnName, value);
+    public <T extends IDataObject> T getData(DataObjectRegistry dataObjectRegistry, Class<T> recordType, String columnName, Object value) {
+        List<T> records = getAllData(dataObjectRegistry, recordType, columnName, value);
         if (records.isEmpty()) {
             return null;
         }
@@ -88,7 +88,7 @@ public class MysqlDatabase {
     }
 
     public void saveData(DataObjectRegistry dataObjectRegistry, IDataObject record) {
-        Table table = dataObjectRegistry.getTableByRecordClass(record.getClass());
+        Table table = dataObjectRegistry.getTableByDataClass(record.getClass());
         if (table == null) {
             System.out.println("Table for record " + record.getClass().getSimpleName() + " is null");
             return;
@@ -358,5 +358,21 @@ public class MysqlDatabase {
 
     public TypeRegistry getTypeRegistry() {
         return typeRegistry;
+    }
+
+    public void deleteData(DataObjectRegistry dataObjectRegistry, IDataObject object) {
+        Table table = dataObjectRegistry.getTableByDataClass(object.getClass());
+        if (table == null) {
+            logger.severe("A table for the class " + object.getClass().getName() + " has not been registered.");
+            return;
+        }
+        
+        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", object.getId() + "");
+        String deleteSql = Statements.DELETE.replace("{database}", this.databaseName).replace("{table}", table.getName());
+        try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement()) {
+            statement.execute(deleteSql + " " + where);
+        } catch (Exception e) {
+            
+        }
     }
 }
