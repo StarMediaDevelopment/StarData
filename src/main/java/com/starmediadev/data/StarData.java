@@ -13,7 +13,6 @@ import java.util.logging.Logger;
 
 public class StarData {
     public static String driverClass;
-    private Context context;
 
     private TypeRegistry typeRegistry;
     private DataObjectRegistry dataObjectRegistry;
