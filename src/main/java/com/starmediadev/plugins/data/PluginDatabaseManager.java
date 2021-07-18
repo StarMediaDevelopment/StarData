@@ -3,7 +3,6 @@ package com.starmediadev.plugins.data;
 import com.starmediadev.data.StarData;
 import com.starmediadev.data.manager.DatabaseManager;
 import com.starmediadev.data.model.IDataObject;
-import com.starmediadev.data.model.MysqlDatabase;
 import com.starmediadev.data.model.Table;
 import com.starmediadev.data.properties.SqlProperties;
 
