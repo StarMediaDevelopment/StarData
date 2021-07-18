@@ -38,6 +38,7 @@ public class StarData {
 
         typeRegistry = TypeRegistry.createInstance(logger);
         dataObjectRegistry = DataObjectRegistry.createInstance(logger, typeRegistry);
+        databaseManager = new SingleDatabaseManager(this);
     }
 
     public static Logger createLogger(Class<?> clazz) {
@@ -64,7 +65,7 @@ public class StarData {
         return typeRegistry;
     }
 
-    public DataObjectRegistry getRecordRegistry() {
+    public DataObjectRegistry getDataObjectRegistry() {
         return dataObjectRegistry;
     }
 

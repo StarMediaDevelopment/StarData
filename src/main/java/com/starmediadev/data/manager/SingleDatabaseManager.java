@@ -1,37 +1,37 @@
 package com.starmediadev.data.manager;
 
+import com.starmediadev.data.StarData;
 import com.starmediadev.data.model.IDataObject;
+import com.starmediadev.data.model.MysqlDataSource;
+import com.starmediadev.data.model.MysqlDatabase;
 import com.starmediadev.data.model.Table;
 import com.starmediadev.data.properties.SqlProperties;
-import com.starmediadev.data.registries.DataObjectRegistry;
-import com.starmediadev.data.registries.TypeRegistry;
-import com.starmediadev.data.model.MysqlDatabase;
 
 import java.util.List;
-import java.util.logging.Logger;
 
 public class SingleDatabaseManager extends DatabaseManager {
 
     private MysqlDatabase database;
+    private MysqlDataSource dataSource;
 
-    public SingleDatabaseManager(Logger logger, DataObjectRegistry dataObjectRegistry, TypeRegistry typeRegistry) {
-        super(logger, dataObjectRegistry, typeRegistry);
+    public SingleDatabaseManager(StarData starData) {
+        super(starData);
     }
 
     public MysqlDatabase setupDatabase(SqlProperties properties) {
-        database = new MysqlDatabase(logger, properties, typeRegistry);
-        return database;
+        this.dataSource = new MysqlDataSource(URL.replace("{host}", properties.getHost()).replace("port", properties.getPort() + ""), properties.getUsername(), properties.getPassword() + "/" + properties.getDatabase());
+        return database = new MysqlDatabase(starData, properties);
     }
 
     public void saveData(IDataObject record) {
-        database.saveData(dataObjectRegistry, record);
+        database.saveData(dataSource, record);
     }
 
     public void saveAllData(IDataObject... records) {
-        database.saveAllData(dataObjectRegistry, records);
+        database.saveAllData(dataSource, records);
     }
 
-    public void registerTable(Table table) {
+    public void registerTable(Table table, String... databases) {
         database.addTable(table);
         if (this.setup) {
             generate();
@@ -39,18 +39,18 @@ public class SingleDatabaseManager extends DatabaseManager {
     }
 
     public void deleteData(IDataObject object) {
-        this.database.deleteData(dataObjectRegistry, object);
+        this.database.deleteData(dataSource, object);
     }
 
     public void generate() {
-        database.generateTables();
+        database.generateTables(dataSource);
     }
 
     public <T extends IDataObject> T getData(Class<T> recordType, String columnName, Object value) {
-        return database.getData(this.dataObjectRegistry, recordType, columnName, value);
+        return database.getData(dataSource, recordType, columnName, value);
     }
 
     public <T extends IDataObject> List<T> getAllData(Class<T> recordType, String columnName, Object value) {
-        return database.getAllData(dataObjectRegistry, recordType, columnName, value);
+        return database.getAllData(dataSource, recordType, columnName, value);
     }
 }

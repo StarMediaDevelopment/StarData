@@ -1,5 +1,6 @@
 package com.starmediadev.data.model;
 
+import com.starmediadev.data.StarData;
 import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.annotations.TableInfo;
 import com.starmediadev.data.handlers.DataTypeHandler;
@@ -17,32 +18,26 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Logger;
 
 public class MysqlDatabase {
-    private static final String URL = "jdbc:mysql://{hostname}:{port}/{database}";
     private final Logger logger;
 
-    private final MysqlDataSource dataSource;
-
+    private final DataObjectRegistry dataObjectRegistry;
     private final TypeRegistry typeRegistry;
 
     private Queue<IDataObject> queue = new ArrayBlockingQueue<>(100); //TODO
 
     private final Map<String, Table> tables = new HashMap<>();
-    private final String databaseName;
+    private final String databaseName, host;
 
-    public MysqlDatabase(Logger logger, SqlProperties properties, TypeRegistry typeRegistry) {
-        this.logger = logger;
-        String host = properties.getHost();
-        int port = properties.getPort();
-        databaseName = properties.getDatabase();
-        String username = properties.getUsername();
-        String password = properties.getPassword();
-        String url = URL.replace("{hostname}", host).replace("{port}", port + "").replace("{database}", databaseName);
+    public MysqlDatabase(StarData starData, SqlProperties properties) {
+        this.logger = starData.getLogger();
+        this.databaseName = properties.getDatabase();
+        this.host = properties.getHost();
 
-        this.dataSource = new MysqlDataSource(url, username, password);
-        this.typeRegistry = typeRegistry;
+        this.typeRegistry = starData.getTypeRegistry();
+        this.dataObjectRegistry = starData.getDataObjectRegistry();
     }
 
-    public <T extends IDataObject> List<T> getAllData(DataObjectRegistry dataObjectRegistry, Class<T> recordType, String columnName, Object value) {
+    public <T extends IDataObject> List<T> getAllData(MysqlDataSource dataSource, Class<T> recordType, String columnName, Object value) {
         List<T> records = new LinkedList<>();
         for (Table table : this.tables.values()) {
             String tableName = "";
@@ -79,15 +74,15 @@ public class MysqlDatabase {
         return records;
     }
 
-    public <T extends IDataObject> T getData(DataObjectRegistry dataObjectRegistry, Class<T> recordType, String columnName, Object value) {
-        List<T> records = getAllData(dataObjectRegistry, recordType, columnName, value);
+    public <T extends IDataObject> T getData(MysqlDataSource dataSource, Class<T> recordType, String columnName, Object value) {
+        List<T> records = getAllData(dataSource, recordType, columnName, value);
         if (records.isEmpty()) {
             return null;
         }
         return records.get(0);
     }
 
-    public void saveData(DataObjectRegistry dataObjectRegistry, IDataObject record) {
+    public void saveData(MysqlDataSource dataSource, IDataObject record) {
         Table table = dataObjectRegistry.getTableByDataClass(record.getClass());
         if (table == null) {
             System.out.println("Table for record " + record.getClass().getSimpleName() + " is null");
@@ -124,7 +119,7 @@ public class MysqlDatabase {
             }
 
             if (fieldValue instanceof IDataObject dataObject) {
-                saveData(dataObjectRegistry, dataObject);
+                saveData(dataSource, dataObject);
             }
 
             if (Collection.class.isAssignableFrom(field.getType())) {
@@ -134,7 +129,7 @@ public class MysqlDatabase {
                 List<Object> serializedElements = new ArrayList<>();
                 for (Object o : collection) {
                     if (o instanceof IDataObject rec) {
-                        saveData(dataObjectRegistry, rec);
+                        saveData(dataSource, rec);
                         collectionContainsRecord = true;
                         recordIds.add(rec.getDataInfo().getId());
                     } else {
@@ -148,9 +143,9 @@ public class MysqlDatabase {
                     }
                 }
                 if (collectionContainsRecord) {
-                    fieldValue = serializeCollection(record, field, fieldValue, Utils.join(recordIds, ","), serializedElements);
+                    fieldValue = serializeCollection(dataSource, record, field, fieldValue, Utils.join(recordIds, ","), serializedElements);
                 } else if (!serializedElements.isEmpty()) {
-                    fieldValue = serializeCollection(record, field, fieldValue, Utils.join(serializedElements, ","), serializedElements);
+                    fieldValue = serializeCollection(dataSource, record, field, fieldValue, Utils.join(serializedElements, ","), serializedElements);
                 }
             }
 
@@ -249,7 +244,7 @@ public class MysqlDatabase {
         }
     }
 
-    private Object serializeCollection(IDataObject record, Field field, Object fieldValue, String join, List<Object> serializedElements) {
+    private Object serializeCollection(MysqlDataSource dataSource, IDataObject record, Field field, Object fieldValue, String join, List<Object> serializedElements) {
         if (field.getGenericType() instanceof ParameterizedType paramType) {
             Type[] arguments = paramType.getActualTypeArguments();
             if (arguments != null && arguments.length == 1) {
@@ -262,15 +257,15 @@ public class MysqlDatabase {
         return fieldValue;
     }
 
-    public void saveAllData(DataObjectRegistry dataObjectRegistry, IDataObject... records) {
+    public void saveAllData(MysqlDataSource dataSource, IDataObject... records) {
         if (records != null) {
             for (IDataObject record : records) {
-                saveData(dataObjectRegistry, record);
+                saveData(dataSource, record);
             }
         }
     }
 
-    public void generateTables() {
+    public void generateTables(MysqlDataSource dataSource) {
         for (Table table : this.tables.values()) {
             String sql = table.generateCreationStatement(this.databaseName);
 
@@ -359,7 +354,7 @@ public class MysqlDatabase {
         return typeRegistry;
     }
 
-    public void deleteData(DataObjectRegistry dataObjectRegistry, IDataObject object) {
+    public void deleteData(MysqlDataSource dataSource, IDataObject object) {
         Table table = dataObjectRegistry.getTableByDataClass(object.getClass());
         if (table == null) {
             logger.severe("A table for the class " + object.getClass().getName() + " has not been registered.");
@@ -373,5 +368,9 @@ public class MysqlDatabase {
         } catch (Exception e) {
 
         }
+    }
+
+    public String getHost() {
+        return host;
     }
 }
