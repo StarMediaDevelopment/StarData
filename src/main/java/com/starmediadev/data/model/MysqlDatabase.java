@@ -22,6 +22,7 @@ public class MysqlDatabase {
 
     private final DataObjectRegistry dataObjectRegistry;
     private final TypeRegistry typeRegistry;
+    private final StarData starData;
 
     private Queue<IDataObject> queue = new ArrayBlockingQueue<>(100); //TODO
 
@@ -29,6 +30,7 @@ public class MysqlDatabase {
     private final String databaseName, host;
 
     public MysqlDatabase(StarData starData, SqlProperties properties) {
+        this.starData = starData;
         this.logger = starData.getLogger();
         this.databaseName = properties.getDatabase();
         this.host = properties.getHost();
@@ -61,7 +63,7 @@ public class MysqlDatabase {
 
                 try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(sql)) {
                     while (resultSet.next()) {
-                        Row row = new Row(table, resultSet, this, dataSource);
+                        Row row = new Row(table, resultSet, this, starData);
                         records.add(row.getRecord(dataObjectRegistry, recordType));
                     }
                 } catch (Exception e) {
@@ -119,7 +121,9 @@ public class MysqlDatabase {
             }
 
             if (fieldValue instanceof IDataObject dataObject) {
-                saveData(dataSource, dataObject);
+                starData.getDatabaseManager().saveData(dataObject);
+                serialized.put(field.getName(), Utils.join(dataObject.getDataInfo().getMappings().keySet(), ",") + ":" + Utils.join(dataObject.getDataInfo().getMappings().values(), ","));
+                continue;
             }
 
             if (Collection.class.isAssignableFrom(field.getType())) {
@@ -129,7 +133,7 @@ public class MysqlDatabase {
                 List<Object> serializedElements = new ArrayList<>();
                 for (Object o : collection) {
                     if (o instanceof IDataObject rec) {
-                        saveData(dataSource, rec);
+                        starData.getDatabaseManager().saveData(rec);
                         collectionContainsRecord = true;
                         recordIds.add(rec.getDataInfo().getId(databaseName));
                     } else {
@@ -170,7 +174,7 @@ public class MysqlDatabase {
 
         try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement(); ResultSet resultSet = statement.executeQuery(selectSql)) {
             if (resultSet.next()) {
-                Row row = new Row(table, resultSet, this, dataSource);
+                Row row = new Row(table, resultSet, this, starData);
                 if (!row.getDataMap().isEmpty()) {
                     StringBuilder sb = new StringBuilder();
 

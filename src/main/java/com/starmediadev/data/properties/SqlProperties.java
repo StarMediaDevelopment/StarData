@@ -3,7 +3,7 @@ package com.starmediadev.data.properties;
 import java.io.*;
 import java.util.Properties;
 
-public class SqlProperties {
+public class SqlProperties implements Cloneable {
     private Properties properties;
 
     public SqlProperties() {
@@ -59,7 +59,8 @@ public class SqlProperties {
     }
 
     public SqlProperties setDatabase(String database) {
-        this.properties.put("mysql-database", database);
+        if (database != null)
+            this.properties.put("mysql-database", database);
         return this;
     }
 
@@ -101,5 +102,11 @@ public class SqlProperties {
 
     public Properties getConnectionProperties() {
         return properties;
+    }
+
+    public SqlProperties clone() {
+        SqlProperties sqlProperties = new SqlProperties();
+        sqlProperties.setDatabase(getDatabase()).setPort(getPort()).setPassword(getPassword()).setUsername(getUsername()).setHost(getHost());
+        return sqlProperties;
     }
 }

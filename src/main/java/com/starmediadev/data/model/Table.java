@@ -8,7 +8,7 @@ public class Table {
     protected final String name;
     protected String recordName;
     protected final IncrementalMap<Column> columns = new IncrementalMap<>();
-    protected final List<String> databases = new ArrayList<>();
+    protected final Set<String> databases = new HashSet<>();
 
     public Table(String name) {
         this.name = name;
@@ -21,11 +21,11 @@ public class Table {
         }
     }
     
-    public void addDatabases(String... databases) {
-        this.databases.addAll(Arrays.asList(databases));
+    public void addDatabase(String database) {
+        this.databases.add(database);
     }
 
-    public List<String> getDatabases() {
+    public Set<String> getDatabases() {
         return databases;
     }
 

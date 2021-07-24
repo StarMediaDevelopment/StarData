@@ -7,16 +7,15 @@ import com.starmediadev.data.model.MysqlDatabase;
 import com.starmediadev.data.model.Table;
 import com.starmediadev.data.properties.SqlProperties;
 import com.starmediadev.utils.Pair;
+import com.starmediadev.utils.Utils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class MultidatabaseManager extends DatabaseManager {
     
     private Map<String, MysqlDatabase> databases = new HashMap<>();
     private Map<String, MysqlDataSource> dataSources = new HashMap<>();
+    private Set<Table> allDatabaseTables = new HashSet<>();
     
     public MultidatabaseManager(StarData starData) {
         super(starData);
@@ -24,7 +23,7 @@ public class MultidatabaseManager extends DatabaseManager {
 
     public MysqlDatabase setupDatabase(SqlProperties properties) {
         if (!dataSources.containsKey(properties.getHost().toLowerCase())) {
-            this.dataSources.put(properties.getHost().toLowerCase(), new MysqlDataSource(URL.replace("{host}", properties.getHost()).replace("port", properties.getPort() + ""), properties.getUsername(), properties.getPassword()));
+            this.dataSources.put(properties.getHost().toLowerCase(), new MysqlDataSource(URL.replace("{hostname}", properties.getHost()).replace("{port}", properties.getPort() + ""), properties.getUsername(), properties.getPassword()));
         }
         
         if (this.databases.containsKey(properties.getDatabase().toLowerCase())) {
@@ -32,42 +31,67 @@ public class MultidatabaseManager extends DatabaseManager {
         }
         
         MysqlDatabase mysqlDatabase = new MysqlDatabase(starData, properties);
+        if (!this.allDatabaseTables.isEmpty()) {
+            for (Table table : this.allDatabaseTables) {
+                mysqlDatabase.addTable(table);
+                table.addDatabase(mysqlDatabase.getDatabaseName());
+            }
+        }
         this.databases.put(mysqlDatabase.getDatabaseName(), mysqlDatabase);
         return mysqlDatabase;
     }
     
     public void saveData(IDataObject record) {
+        logger.info("Saving an object with the type " + record.getClass().getName());
         List<String> rawDatabases = new ArrayList<>();
         
         if (record.getDataInfo().getMappings().isEmpty()) {
+            logger.info("No current database mappings exist, adding specified databases");
             rawDatabases.addAll(record.getDataInfo().getDatabases());
         } else {
+            logger.info("Database mappings exist for the data object");
             rawDatabases.addAll(record.getDataInfo().getMappings().keySet());
         }
 
         Table table = dataObjectRegistry.getTableByDataClass(record.getClass());
+        logger.info("Table for the record is " + table.getName());
+        if (rawDatabases.isEmpty()) {
+            logger.info("No databases existed from object data, adding databases from the table configuration");
+            rawDatabases.addAll(table.getDatabases());
+            logger.info("Configured Table databases: " + Utils.join(table.getDatabases(), ","));
+        }
         List<MysqlDatabase> databases = new ArrayList<>();
-        if (!databases.isEmpty()) {
+        if (!rawDatabases.isEmpty()) {
+            logger.info("Checking all databases specified");
             for (String database : rawDatabases) {
+                logger.info("Checking database " + database);
                 MysqlDatabase mysqlDatabase = this.databases.get(database);
                 if (mysqlDatabase == null) {
                     return;
                 }
                 
                 databases.add(mysqlDatabase);
+                logger.info("Successfully checked database " + database);
             }
         } else {
+            logger.info("No databases provided, checking against all databases and registered tables");
             for (MysqlDatabase database : this.databases.values()) {
+                logger.info("Checking database " + database.getDatabaseName());
                 if (database.getTables().containsKey(table.getName())) {
+                    logger.info("Database " + database.getDatabaseName() + " has the table " + table.getName() + " registered");
                    databases.add(database);
                 }
             }
         }
+        
+        logger.info("Found a total of " + databases.size() + " databases that this data object can be saved to.");
 
         for (MysqlDatabase database : databases) {
             if (database.getTables().containsKey(table.getName())) {
+                logger.info("Saving the data to the database " + database.getDatabaseName());
                 MysqlDataSource dataSource = this.dataSources.get(database.getHost().toLowerCase());
                 database.saveData(dataSource, record);
+                logger.info("Saved successful");
             }
         }
     }
@@ -81,18 +105,29 @@ public class MultidatabaseManager extends DatabaseManager {
     }
 
     public void registerTable(Table table, String... databases) {
-        if (databases == null) {
-            throw new RuntimeException("Error while registering table " + table.getName() + ", there is no databases provided in a multidatabase setting.");
-        }
-
-        for (String database : databases) {
-            MysqlDatabase mysqlDatabase = this.databases.get(database.toLowerCase());
-            if (mysqlDatabase == null) {
-                logger.severe("Could not find a database with the name " + database);
-                continue;
+        logger.info("Registering the table " + table.getName());
+        if (databases != null) {
+            logger.info("Specified databases is not null");
+            for (String database : databases) {
+                logger.info("Checking database name " + database);
+                MysqlDatabase mysqlDatabase = this.databases.get(database.toLowerCase());
+                if (mysqlDatabase == null) {
+                    logger.severe("Could not find a database with the name " + database);
+                    continue;
+                }
+                
+                mysqlDatabase.addTable(table);
+                table.addDatabase(mysqlDatabase.getDatabaseName());
+                logger.info("Registered table " + table.getName() + " with the database " + database);
             }
-            
-            mysqlDatabase.addTable(table);
+        } else {
+            logger.info("No databases provided, this is now an all database table.");
+            this.allDatabaseTables.add(table);
+            for (MysqlDatabase database : this.databases.values()) {
+                database.addTable(table);
+                table.addDatabase(database.getDatabaseName());
+                logger.info("Registered table " + table.getName() + " with the database " + database.getDatabaseName());
+            }
         }
     }
     

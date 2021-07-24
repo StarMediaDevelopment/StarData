@@ -1,5 +1,6 @@
 package com.starmediadev.data.model;
 
+import com.starmediadev.data.StarData;
 import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.handlers.CollectionHandler;
 import com.starmediadev.data.handlers.DataTypeHandler;
@@ -16,15 +17,15 @@ import java.util.Map;
 import java.util.Set;
 
 class Row {
+    private final StarData starData;
     private final MysqlDatabase database;
-    private final MysqlDataSource source;
     protected final Map<String, Object> dataMap = new HashMap<>();
     protected final Table table;
 
-    public Row(Table table, ResultSet resultSet, MysqlDatabase database, MysqlDataSource source) {
+    public Row(Table table, ResultSet resultSet, MysqlDatabase database, StarData starData) {
+        this.starData = starData;
         this.table = table;
         this.database = database;
-        this.source = source;
         for (Column column : table.getColumns()) {
             try {
                 this.dataMap.put(column.getName(), resultSet.getObject(column.getName()));
@@ -86,7 +87,7 @@ class Row {
                             for (String e : elementSplit) {
                                 if (IDataObject.class.isAssignableFrom(elementType)) {
                                     int id = Integer.parseInt(e);
-                                    IDataObject colRecord = database.getData(source, (Class<? extends IDataObject>) elementType, "id", id);
+                                    IDataObject colRecord = starData.getDatabaseManager().getData((Class<? extends IDataObject>) elementType, "id", id);
                                     collection.add(colRecord);
                                 } else {
                                     DataTypeHandler<?> handler = database.getTypeRegistry().getHandler(elementType);
@@ -103,7 +104,11 @@ class Row {
                         } catch (Exception e) {
                         }
                     } else if (column.getTypeHandler() instanceof DataObjectHandler) {
-                        object = database.getData(source, ((Class<? extends IDataObject>) field.getType()), "id", this.dataMap.get(field.getName()));
+                        String rawData = (String) this.dataMap.get(field.getName());
+                        String[] rawSplitMain = rawData.split(":");
+                        String database = rawSplitMain[0].split(",")[0];
+                        int id = Integer.parseInt(rawSplitMain[1].split(",")[0]);
+                        object = starData.getDatabaseManager().getData(((Class<? extends IDataObject>) field.getType()), "id", id);
                     } else {
                         object = column.getTypeHandler().deserialize(dataObject, field.getType());
                     }

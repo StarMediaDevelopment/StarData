@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.Set;
 
 public final class DataInfo {
-    private int id; //Like the deprecated field in IDataObject this is the entry id from the database
-    private String name; //This is the name of the database that the object was saved to.
+    private int id; 
+    private String name;
 
     private Map<String, Integer> databaseIdMap = new HashMap<>();
     private Set<String> databases = new HashSet<>();
@@ -36,17 +36,12 @@ public final class DataInfo {
         return this.databaseIdMap.get(database);
     }
     
-    public int getLowestId() {
-        int lowest = 0;
-        for (Integer value : this.databaseIdMap.values()) {
-            if (lowest == 0) {
-                lowest = value;
-            } else {
-                if (value < lowest) {
-                    lowest = value;
-                }
-            }
-        }
-        return lowest;
+    public String toString() {
+        return "DataInfo{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", databaseIdMap=" + databaseIdMap +
+                ", databases=" + databases +
+                '}';
     }
 }
