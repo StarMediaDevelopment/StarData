@@ -52,13 +52,13 @@ public class MysqlDatabase {
                 tableName = recordType.getSimpleName().toLowerCase();
             }
             if (table.getName().equalsIgnoreCase(tableName)) {
-                String sql = "SELECT * FROM " + table.getName();
+                String sql = Statements.SELECT.replace("{database}", databaseName).replace("{table}", tableName);
                 if (columnName != null) {
                     Column column = table.getColumn(columnName);
                     if (column == null) {
                         continue;
                     }
-                    sql += " WHERE `" + column.getName() + "` = '" + value + "'";
+                    sql += " " + Statements.WHERE.replace("{column}", columnName).replace("{value}", value + "");
                 }
 
                 try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(sql)) {
@@ -68,6 +68,7 @@ public class MysqlDatabase {
                     }
                 } catch (Exception e) {
                     logger.severe("An error occured: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         }
