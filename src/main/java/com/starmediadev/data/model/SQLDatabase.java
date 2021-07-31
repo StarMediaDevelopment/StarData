@@ -1,6 +1,7 @@
 package com.starmediadev.data.model;
 
 import com.starmediadev.data.StarData;
+import com.starmediadev.data.annotations.ColumnIgnored;
 import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.annotations.TableInfo;
 import com.starmediadev.data.handlers.DataTypeHandler;
@@ -118,6 +119,12 @@ public class SQLDatabase {
                     logger.finest(String.format("Field %s of the type %s is ignored for database use.", field.getName(), don));
                     continue;
                 }
+            }
+
+            ColumnIgnored columnIgnored = field.getAnnotation(ColumnIgnored.class);
+            if (columnIgnored != null) {
+                logger.finest(String.format("Field %s of the type %s is ignored for database use.", field.getName(), don));
+                continue;
             }
 
             Object fieldValue;

@@ -1,6 +1,7 @@
 package com.starmediadev.data.model;
 
 import com.starmediadev.data.StarData;
+import com.starmediadev.data.annotations.ColumnIgnored;
 import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.handlers.CollectionHandler;
 import com.starmediadev.data.handlers.DataTypeHandler;
@@ -59,10 +60,16 @@ class Row {
                 field.setAccessible(true);
                 logger.finest(String.format("Checking field %s of type %s", fn, don));
                 ColumnInfo columnInfo = field.getAnnotation(ColumnInfo.class);
+                ColumnIgnored columnIgnored = field.getAnnotation(ColumnIgnored.class);
                 if (columnInfo != null) {
                     if (columnInfo.ignored())
                         logger.finest(String.format("Field %s of type %s is ignored", fn, don));
                         continue;
+                }
+                
+                if (columnIgnored != null) {
+                    logger.finest(String.format("Field %s of type %s is ignored", fn, don));
+                    continue;
                 }
                 
                 if (DataInfo.class.isAssignableFrom(field.getType())) {

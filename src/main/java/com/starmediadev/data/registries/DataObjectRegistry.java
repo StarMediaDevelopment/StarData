@@ -1,5 +1,6 @@
 package com.starmediadev.data.registries;
 
+import com.starmediadev.data.annotations.ColumnIgnored;
 import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.annotations.TableInfo;
 import com.starmediadev.data.handlers.DataTypeHandler;
@@ -72,6 +73,11 @@ public final class DataObjectRegistry {
                     if (columnInfo.ignored()) {
                         continue;
                     }
+                }
+
+                ColumnIgnored columnIgnored = field.getAnnotation(ColumnIgnored.class);
+                if (columnIgnored != null) {
+                    continue;
                 }
 
                 if (Collection.class.isAssignableFrom(field.getType())) {
