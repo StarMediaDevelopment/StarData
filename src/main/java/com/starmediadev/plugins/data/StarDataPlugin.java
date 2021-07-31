@@ -8,6 +8,7 @@ import com.starmediadev.data.model.IDataObject;
 import com.starmediadev.data.properties.SqlProperties;
 import com.starmediadev.plugins.data.events.DatabaseRegisterEvent;
 import com.starmediadev.plugins.data.events.HandlerRegisterEvent;
+import com.starmediadev.plugins.data.events.PostDataSetupEvent;
 import com.starmediadev.plugins.data.events.TypeRegisterEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
@@ -54,6 +55,8 @@ public class StarDataPlugin extends JavaPlugin {
             }
             
             databaseManager.setup();
+            
+            pluginManager.callEvent(new PostDataSetupEvent(starData));
         }, 1L);
     }
 }

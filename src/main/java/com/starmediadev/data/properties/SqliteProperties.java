@@ -6,6 +6,8 @@ public class SqliteProperties extends SqlProperties {
     
     private Path file;
     
+    public SqliteProperties() {}
+    
     private SqliteProperties(SqliteProperties properties) {
         setFile(properties.getFile());
     }
