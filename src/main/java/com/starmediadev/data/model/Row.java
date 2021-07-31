@@ -16,11 +16,11 @@ import java.util.logging.Logger;
 
 class Row {
     private final StarData starData;
-    private final MysqlDatabase database;
+    private final SQLDatabase database;
     protected final Map<String, Object> dataMap = new HashMap<>();
     protected final Table table;
 
-    public Row(Table table, ResultSet resultSet, MysqlDatabase database, StarData starData) {
+    public Row(Table table, ResultSet resultSet, SQLDatabase database, StarData starData) {
         this.starData = starData;
         this.table = table;
         this.database = database;
@@ -28,7 +28,7 @@ class Row {
             try {
                 this.dataMap.put(column.getName(), resultSet.getObject(column.getName()));
             } catch (Exception e) {
-                database.getLogger().severe("Could not get column data for table " + table.getName() + " in the database " + database.getDatabaseName());
+                database.getLogger().severe("Could not get column data for table " + table.getName() + " in the database " + database.getName());
             }
         }
     }
@@ -72,10 +72,10 @@ class Row {
                     if (field.get(record) == null) {
                         logger.finest(String.format("Field %s is null, creating a new instance", fn));
                         DataInfo dataInfo = new DataInfo();
-                        dataInfo.addMapping(database.getDatabaseName(), id);
+                        dataInfo.addMapping(database.getName(), id);
                         field.set(record, dataInfo);
                     } else {
-                        record.getDataInfo().addMapping(database.getDatabaseName(), id);
+                        record.getDataInfo().addMapping(database.getName(), id);
                     }
                     continue;
                 }

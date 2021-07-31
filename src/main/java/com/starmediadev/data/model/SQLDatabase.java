@@ -4,6 +4,7 @@ import com.starmediadev.data.StarData;
 import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.annotations.TableInfo;
 import com.starmediadev.data.handlers.DataTypeHandler;
+import com.starmediadev.data.model.source.DataSource;
 import com.starmediadev.data.properties.SqlProperties;
 import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.data.registries.TypeRegistry;
@@ -14,32 +15,32 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Logger;
 
-public class MysqlDatabase {
-    private final Logger logger;
+public class SQLDatabase {
+    protected final Logger logger;
 
-    private final DataObjectRegistry dataObjectRegistry;
-    private final TypeRegistry typeRegistry;
-    private final StarData starData;
+    protected final DataObjectRegistry dataObjectRegistry;
+    protected final TypeRegistry typeRegistry;
+    protected final StarData starData;
+    protected final DataSource dataSource;
+    protected final Map<String, Table> tables = new HashMap<>();
+    protected final SqlProperties properties;
+    
+    protected String name;
 
-    @SuppressWarnings("unused") private Queue<IDataObject> queue = new ArrayBlockingQueue<>(100); //TODO
-
-    private final Map<String, Table> tables = new HashMap<>();
-    private final String databaseName, host;
-
-    public MysqlDatabase(StarData starData, SqlProperties properties) {
+    public SQLDatabase(StarData starData, SqlProperties properties, DataSource dataSource) {
         this.starData = starData;
         this.logger = starData.getLogger();
-        this.databaseName = properties.getDatabase();
-        this.host = properties.getHost();
+        
+        this.properties = properties.clone();
 
         this.typeRegistry = starData.getTypeRegistry();
         this.dataObjectRegistry = starData.getDataObjectRegistry();
+        this.dataSource = dataSource;
     }
 
-    public <T extends IDataObject> List<T> getAllData(MysqlDataSource dataSource, Class<T> recordType, String columnName, Object value) {
+    public <T extends IDataObject> List<T> getAllData(Class<T> recordType, String columnName, Object value) {
         List<T> records = new LinkedList<>();
         for (Table table : this.tables.values()) {
             String tableName = "";
@@ -52,7 +53,7 @@ public class MysqlDatabase {
                 tableName = recordType.getSimpleName().toLowerCase();
             }
             if (table.getName().equalsIgnoreCase(tableName)) {
-                String sql = Statements.SELECT.replace("{database}", databaseName).replace("{table}", tableName);
+                String sql = Statements.SELECT.replace("{database}", name).replace("{table}", tableName);
                 if (columnName != null) {
                     Column column = table.getColumn(columnName);
                     if (column == null) {
@@ -73,19 +74,19 @@ public class MysqlDatabase {
             }
         }
 
-        records.sort(Comparator.comparingInt(object -> object.getDataInfo().getId(databaseName)));
+        records.sort(Comparator.comparingInt(object -> object.getDataInfo().getId(name)));
         return records;
     }
 
-    public <T extends IDataObject> T getData(MysqlDataSource dataSource, Class<T> recordType, String columnName, Object value) {
-        List<T> records = getAllData(dataSource, recordType, columnName, value);
+    public <T extends IDataObject> T getData(Class<T> recordType, String columnName, Object value) {
+        List<T> records = getAllData(recordType, columnName, value);
         if (records.isEmpty()) {
             return null;
         }
         return records.get(0);
     }
 
-    public void saveData(MysqlDataSource dataSource, IDataObject record) {
+    public void saveData(IDataObject record) {
         String don = record.getClass().getName();
         logger.finest("Saving a data object with the type " + don);
         Table table = dataObjectRegistry.getTableByDataClass(record.getClass());
@@ -96,7 +97,7 @@ public class MysqlDatabase {
         logger.finest(String.format("Found a table with the name %s for the type %s", table.getName(), don));
         Map<String, Object> serialized = new HashMap<>();
         Set<Field> fields = Utils.getClassFields(record.getClass());
-        
+
         logger.finest(String.format("There are a total of %s fields for the type %s", fields.size(), don));
 
         for (Field field : fields) {
@@ -105,8 +106,8 @@ public class MysqlDatabase {
 
             if (DataInfo.class.isAssignableFrom(field.getType())) {
                 logger.finest(String.format("The field %s has the type of DataInfo", field.getName()));
-                Integer id = record.getDataInfo().getId(databaseName);
-                logger.finest(String.format("The id for this entry in the database %s is %s", databaseName, id));
+                Integer id = record.getDataInfo().getId(name);
+                logger.finest(String.format("The id for this entry in the database %s is %s", name, id));
                 serialized.put("id", id);
                 continue;
             }
@@ -154,7 +155,7 @@ public class MysqlDatabase {
                         logger.finest(String.format("Element of the collection in field %s of type %s is an IDataObject", field.getName(), don));
                         starData.getDatabaseManager().saveData(rec);
                         collectionContainsRecord = true;
-                        Integer id = rec.getDataInfo().getId(databaseName);
+                        Integer id = rec.getDataInfo().getId(name);
                         if (id == null) {
                             for (Integer value : rec.getDataInfo().getMappings().values()) {
                                 id = value;
@@ -174,9 +175,9 @@ public class MysqlDatabase {
                     }
                 }
                 if (collectionContainsRecord) {
-                    fieldValue = serializeCollection(dataSource, record, field, fieldValue, Utils.join(recordIds, ","), serializedElements);
+                    fieldValue = serializeCollection(record, field, fieldValue, Utils.join(recordIds, ","), serializedElements);
                 } else if (!serializedElements.isEmpty()) {
-                    fieldValue = serializeCollection(dataSource, record, field, fieldValue, Utils.join(serializedElements, ","), serializedElements);
+                    fieldValue = serializeCollection(record, field, fieldValue, Utils.join(serializedElements, ","), serializedElements);
                 }
                 serialized.put(field.getName(), fieldValue);
             } else {
@@ -185,7 +186,7 @@ public class MysqlDatabase {
                     logger.severe("There is no DataTypeHandler for field " + field.getName() + " in class " + record.getClass().getName());
                     continue;
                 }
-                
+
                 logger.finest(String.format("Field %s of type %s is handled by %s", field.getName(), don, handler.getClass().getName()));
 
                 if (fieldValue != null) {
@@ -193,7 +194,7 @@ public class MysqlDatabase {
                 }
             }
         }
-        
+
         logger.finest("Finished generating information from the object.");
 
         DataInfo dataInfo = record.getDataInfo();
@@ -201,8 +202,8 @@ public class MysqlDatabase {
         String querySQL = null;
         Iterator<Map.Entry<String, Object>> iterator = serialized.entrySet().iterator();
 
-        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", dataInfo.getId(databaseName) + "");
-        String selectSql = Statements.SELECT.replace("{database}", this.databaseName).replace("{table}", table.getName()) + " " + where;
+        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", dataInfo.getId(name) + "");
+        String selectSql = Statements.SELECT.replace("{database}", this.name).replace("{table}", table.getName()) + " " + where;
 
         logger.finest("Checking to see if existing data exists...");
         try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement(); ResultSet resultSet = statement.executeQuery(selectSql)) {
@@ -225,8 +226,8 @@ public class MysqlDatabase {
                         }
                     }
 
-                    querySQL = Statements.UPDATE.replace("{values}", sb.toString()).replace("{location}", "id=" + dataInfo.getId(databaseName));
-                    querySQL = querySQL.replace("{table}", table.getName()).replace("{database}", databaseName);
+                    querySQL = Statements.UPDATE.replace("{values}", sb.toString()).replace("{location}", "id=" + dataInfo.getId(name));
+                    querySQL = querySQL.replace("{table}", table.getName()).replace("{database}", name);
                     logger.finest("Data exists for the id provided, using an update query");
                 }
             }
@@ -262,7 +263,7 @@ public class MysqlDatabase {
             }
 
             querySQL = Statements.INSERT.replace("{columns}", colBuilder.toString()).replace("{values}", valueBuilder.toString());
-            querySQL = querySQL.replace("{table}", table.getName()).replace("{database}", databaseName);
+            querySQL = querySQL.replace("{table}", table.getName()).replace("{database}", name);
 
             try (Connection con = dataSource.getConnection(); PreparedStatement statement = con.prepareStatement(querySQL, Statement.RETURN_GENERATED_KEYS)) {
                 int affectedRows = statement.executeUpdate();
@@ -274,7 +275,7 @@ public class MysqlDatabase {
                     if (generatedKeys.next()) {
                         int generated = generatedKeys.getInt(1);
                         logger.finest("Generated id for record is " + generated);
-                        record.getDataInfo().addMapping(databaseName, generated);
+                        record.getDataInfo().addMapping(name, generated);
                         logger.finest("DataInfo " + record.getDataInfo());
                     }
                 } catch (Exception e) {
@@ -288,7 +289,7 @@ public class MysqlDatabase {
         logger.finest(String.format("Saved a data object with the type %s", don));
     }
 
-    private Object serializeCollection(MysqlDataSource dataSource, IDataObject record, Field field, Object fieldValue, String join, List<Object> serializedElements) {
+    private Object serializeCollection(IDataObject record, Field field, Object fieldValue, String join, List<Object> serializedElements) {
         if (field.getGenericType() instanceof ParameterizedType paramType) {
             Type[] arguments = paramType.getActualTypeArguments();
             if (arguments != null && arguments.length == 1) {
@@ -301,17 +302,17 @@ public class MysqlDatabase {
         return fieldValue;
     }
 
-    public void saveAllData(MysqlDataSource dataSource, IDataObject... records) {
+    public void saveAllData(IDataObject... records) {
         if (records != null) {
             for (IDataObject record : records) {
-                saveData(dataSource, record);
+                saveData(record);
             }
         }
     }
 
-    public void generateTables(MysqlDataSource dataSource) {
+    public void generateTables() {
         for (Table table : this.tables.values()) {
-            String sql = table.generateCreationStatement(this.databaseName);
+            String sql = table.generateCreationStatement(this.name);
 
             try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement()) {
                 statement.execute(sql);
@@ -342,7 +343,7 @@ public class MysqlDatabase {
                             } else {
                                 columnType = handler.getMysqlType().name();
                             }
-                            String columnSql = Statements.ALTER_TABLE.replace("{table}", table.getName()).replace("{database}", databaseName).replace("{logic}", Statements.ADD_COLUMN.replace("{column}", column.getName()).replace("{type}", columnType));
+                            String columnSql = Statements.ALTER_TABLE.replace("{table}", table.getName()).replace("{database}", name).replace("{logic}", Statements.ADD_COLUMN.replace("{column}", column.getName()).replace("{type}", columnType));
                             columnSqls.add(columnSql);
                         }
                         existingColumns.remove(column.getName());
@@ -350,7 +351,7 @@ public class MysqlDatabase {
 
                     if (!existingColumns.isEmpty()) {
                         for (String existingColumn : existingColumns) {
-                            String columnSql = Statements.ALTER_TABLE.replace("{table}", table.getName()).replace("{database}", databaseName).replace("{logic}", Statements.DROP_COLUMN.replace("{column}", existingColumn));
+                            String columnSql = Statements.ALTER_TABLE.replace("{table}", table.getName()).replace("{database}", name).replace("{logic}", Statements.DROP_COLUMN.replace("{column}", existingColumn));
                             columnSqls.add(columnSql);
                         }
                     }
@@ -390,23 +391,19 @@ public class MysqlDatabase {
         return tables;
     }
 
-    public String getDatabaseName() {
-        return databaseName;
-    }
-
     public TypeRegistry getTypeRegistry() {
         return typeRegistry;
     }
 
-    public void deleteData(MysqlDataSource dataSource, IDataObject object) {
+    public void deleteData(IDataObject object) {
         Table table = dataObjectRegistry.getTableByDataClass(object.getClass());
         if (table == null) {
             logger.severe("A table for the class " + object.getClass().getName() + " has not been registered.");
             return;
         }
 
-        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", object.getDataInfo().getId(databaseName) + "");
-        String deleteSql = Statements.DELETE.replace("{database}", this.databaseName).replace("{table}", table.getName());
+        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", object.getDataInfo().getId(name) + "");
+        String deleteSql = Statements.DELETE.replace("{database}", this.name).replace("{table}", table.getName());
         try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement()) {
             statement.execute(deleteSql + " " + where);
         } catch (Exception e) {
@@ -414,7 +411,7 @@ public class MysqlDatabase {
         }
     }
 
-    public String getHost() {
-        return host;
+    public String getName() {
+        return name;
     }
 }

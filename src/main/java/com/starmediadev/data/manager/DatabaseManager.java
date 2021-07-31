@@ -3,7 +3,7 @@ package com.starmediadev.data.manager;
 import com.starmediadev.data.StarData;
 import com.starmediadev.data.handlers.DataTypeHandler;
 import com.starmediadev.data.model.IDataObject;
-import com.starmediadev.data.model.MysqlDatabase;
+import com.starmediadev.data.model.SQLDatabase;
 import com.starmediadev.data.model.Table;
 import com.starmediadev.data.properties.SqlProperties;
 import com.starmediadev.data.registries.DataObjectRegistry;
@@ -13,9 +13,6 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public abstract class DatabaseManager {
-
-    public static final String URL = "jdbc:mysql://{hostname}:{port}";
-    
     protected final StarData starData;
     protected final DataObjectRegistry dataObjectRegistry;
     protected final TypeRegistry typeRegistry;
@@ -29,7 +26,7 @@ public abstract class DatabaseManager {
         this.typeRegistry = starData.getTypeRegistry();
     }
     
-    public abstract MysqlDatabase setupDatabase(SqlProperties properties);
+    public abstract SQLDatabase setupDatabase(SqlProperties properties);
     public abstract void saveData(IDataObject record);
     public abstract void saveAllData(IDataObject... records);
     public abstract void registerTable(Table table, String... databases);

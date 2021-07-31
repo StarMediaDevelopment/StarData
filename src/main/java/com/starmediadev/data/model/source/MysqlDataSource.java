@@ -1,4 +1,4 @@
-package com.starmediadev.data.model;
+package com.starmediadev.data.model.source;
 
 import com.starmediadev.data.StarData;
 import com.zaxxer.hikari.HikariConfig;
@@ -7,7 +7,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-public class MysqlDataSource {
+public class MysqlDataSource implements DataSource {
     private final HikariConfig config = new HikariConfig();
     private final HikariDataSource ds;
     
@@ -20,7 +20,7 @@ public class MysqlDataSource {
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         config.setConnectionTimeout(250);
         config.setMaximumPoolSize(50);
-        config.setDriverClassName(StarData.driverClass);
+        config.setDriverClassName(StarData.mysqlDriverClass);
         ds = new HikariDataSource(config);
     }
     

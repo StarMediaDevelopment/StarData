@@ -2,49 +2,58 @@ package com.starmediadev.data.manager;
 
 import com.starmediadev.data.StarData;
 import com.starmediadev.data.model.IDataObject;
-import com.starmediadev.data.model.MysqlDataSource;
-import com.starmediadev.data.model.MysqlDatabase;
+import com.starmediadev.data.model.SQLDatabase;
+import com.starmediadev.data.model.source.DataSource;
+import com.starmediadev.data.model.source.MysqlDataSource;
 import com.starmediadev.data.model.Table;
+import com.starmediadev.data.model.source.SqliteDataSource;
+import com.starmediadev.data.properties.MysqlProperties;
 import com.starmediadev.data.properties.SqlProperties;
-import com.starmediadev.utils.Pair;
+import com.starmediadev.data.properties.SqliteProperties;
 import com.starmediadev.utils.Utils;
 
 import java.util.*;
 
 public class MultidatabaseManager extends DatabaseManager {
-    
-    private Map<String, MysqlDatabase> databases = new HashMap<>();
-    private Map<String, MysqlDataSource> dataSources = new HashMap<>();
+
+    private Map<String, SQLDatabase> databases = new HashMap<>();
     private Set<Table> allDatabaseTables = new HashSet<>();
-    
+
     public MultidatabaseManager(StarData starData) {
         super(starData);
     }
 
-    public MysqlDatabase setupDatabase(SqlProperties properties) {
-        if (!dataSources.containsKey(properties.getHost().toLowerCase())) {
-            this.dataSources.put(properties.getHost().toLowerCase(), new MysqlDataSource(URL.replace("{hostname}", properties.getHost()).replace("{port}", properties.getPort() + ""), properties.getUsername(), properties.getPassword()));
+    public SQLDatabase setupDatabase(SqlProperties properties) {
+        DataSource dataSource = null;
+        String databaseName = "";
+        if (properties instanceof MysqlProperties mysqlProperties) {
+            dataSource = new MysqlDataSource(mysqlProperties.toJDBCUrl(), mysqlProperties.getUsername(), mysqlProperties.getPassword());
+            databaseName = mysqlProperties.getDatabase().toLowerCase();
+        } else if (properties instanceof SqliteProperties sqliteProperties) {
+            dataSource = new SqliteDataSource(sqliteProperties.getFile());
+            String fileName = sqliteProperties.getFile().getFileName().toString();
+            databaseName = fileName.substring(0, fileName.lastIndexOf(".")).toLowerCase();
         }
         
-        if (this.databases.containsKey(properties.getDatabase().toLowerCase())) {
-            throw new RuntimeException("Database " + properties.getDatabase() + " already exists.");
+        if (this.databases.containsKey(databaseName)) {
+            throw new RuntimeException("Database " + databaseName + " already exists.");
         }
-        
-        MysqlDatabase mysqlDatabase = new MysqlDatabase(starData, properties);
+
+        SQLDatabase mysqlDatabase = new SQLDatabase(starData, properties, dataSource);
         if (!this.allDatabaseTables.isEmpty()) {
             for (Table table : this.allDatabaseTables) {
                 mysqlDatabase.addTable(table);
-                table.addDatabase(mysqlDatabase.getDatabaseName());
+                table.addDatabase(mysqlDatabase.getName());
             }
         }
-        this.databases.put(mysqlDatabase.getDatabaseName(), mysqlDatabase);
+        this.databases.put(mysqlDatabase.getName(), mysqlDatabase);
         return mysqlDatabase;
     }
-    
+
     public void saveData(IDataObject record) {
         logger.finest("Saving an object with the type " + record.getClass().getName());
         List<String> rawDatabases = new ArrayList<>();
-        
+
         if (record.getDataInfo().getMappings().isEmpty()) {
             logger.finest("No current database mappings exist, adding specified databases");
             rawDatabases.addAll(record.getDataInfo().getDatabases());
@@ -60,37 +69,36 @@ public class MultidatabaseManager extends DatabaseManager {
             rawDatabases.addAll(table.getDatabases());
             logger.finest("Configured Table databases: " + Utils.join(table.getDatabases(), ","));
         }
-        List<MysqlDatabase> databases = new ArrayList<>();
+        List<SQLDatabase> databases = new ArrayList<>();
         if (!rawDatabases.isEmpty()) {
             logger.finest("Checking all databases specified");
             for (String database : rawDatabases) {
                 logger.finest("Checking database " + database);
-                MysqlDatabase mysqlDatabase = this.databases.get(database);
+                SQLDatabase mysqlDatabase = this.databases.get(database);
                 if (mysqlDatabase == null) {
                     return;
                 }
-                
+
                 databases.add(mysqlDatabase);
                 logger.finest("Successfully checked database " + database);
             }
         } else {
             logger.finest("No databases provided, checking against all databases and registered tables");
-            for (MysqlDatabase database : this.databases.values()) {
-                logger.finest("Checking database " + database.getDatabaseName());
+            for (SQLDatabase database : this.databases.values()) {
+                logger.finest("Checking database " + database.getName());
                 if (database.getTables().containsKey(table.getName())) {
-                    logger.finest("Database " + database.getDatabaseName() + " has the table " + table.getName() + " registered");
-                   databases.add(database);
+                    logger.finest("Database " + database.getName() + " has the table " + table.getName() + " registered");
+                    databases.add(database);
                 }
             }
         }
-        
+
         logger.finest("Found a total of " + databases.size() + " databases that this data object can be saved to.");
 
-        for (MysqlDatabase database : databases) {
+        for (SQLDatabase database : databases) {
             if (database.getTables().containsKey(table.getName())) {
-                logger.info("Saving the data to the database " + database.getDatabaseName());
-                MysqlDataSource dataSource = this.dataSources.get(database.getHost().toLowerCase());
-                database.saveData(dataSource, record);
+                logger.info("Saving the data to the database " + database.getName());
+                database.saveData(record);
                 logger.info("Saved successful");
             }
         }
@@ -110,65 +118,61 @@ public class MultidatabaseManager extends DatabaseManager {
             logger.finest("Specified databases is not null");
             for (String database : databases) {
                 logger.finest("Checking database name " + database);
-                MysqlDatabase mysqlDatabase = this.databases.get(database.toLowerCase());
+                SQLDatabase mysqlDatabase = this.databases.get(database.toLowerCase());
                 if (mysqlDatabase == null) {
                     logger.severe("Could not find a database with the name " + database);
                     continue;
                 }
-                
+
                 mysqlDatabase.addTable(table);
-                table.addDatabase(mysqlDatabase.getDatabaseName());
+                table.addDatabase(mysqlDatabase.getName());
                 logger.finest("Registered table " + table.getName() + " with the database " + database);
             }
         } else {
             logger.finest("No databases provided, this is now an all database table.");
             this.allDatabaseTables.add(table);
-            for (MysqlDatabase database : this.databases.values()) {
+            for (SQLDatabase database : this.databases.values()) {
                 database.addTable(table);
-                table.addDatabase(database.getDatabaseName());
-                logger.finest("Registered table " + table.getName() + " with the database " + database.getDatabaseName());
+                table.addDatabase(database.getName());
+                logger.finest("Registered table " + table.getName() + " with the database " + database.getName());
             }
         }
     }
-    
+
     public void deleteData(IDataObject object) {
         object.getDataInfo().getMappings().forEach((database, id) -> {
-            MysqlDatabase mysqlDatabase = this.databases.get(database);
+            SQLDatabase mysqlDatabase = this.databases.get(database);
             if (mysqlDatabase == null) {
                 return;
             }
 
             Table table = dataObjectRegistry.getTableByDataClass(object.getClass());
             if (mysqlDatabase.getTables().containsKey(table.getName())) {
-                MysqlDataSource dataSource = this.dataSources.get(mysqlDatabase.getHost().toLowerCase());
-                mysqlDatabase.deleteData(dataSource, object);
+                mysqlDatabase.deleteData(object);
             }
         });
     }
 
     public void generate() {
-        for (MysqlDatabase database : this.databases.values()) {
-            MysqlDataSource source = this.dataSources.get(database.getHost().toLowerCase());
-            if (source != null) {
-                database.generateTables(source);
-            }
+        for (SQLDatabase database : this.databases.values()) {
+            database.generateTables();
         }
     }
-    
+
     public <T extends IDataObject> T getData(Class<T> recordType, String columnName, Object value) {
         List<T> data = new ArrayList<>();
         Table table = this.dataObjectRegistry.getTableByDataClass(recordType);
-        
-        for (MysqlDatabase database : this.databases.values()) {
+
+        for (SQLDatabase database : this.databases.values()) {
             if (database.getTables().containsKey(table.getName())) {
-                data.add(database.getData(this.dataSources.get(database.getHost().toLowerCase()), recordType, columnName, value));
+                data.add(database.getData(recordType, columnName, value));
             }
         }
-        
+
         if (!data.isEmpty()) {
             return data.get(0);
         }
-        
+
         return null;
     }
 
@@ -176,41 +180,39 @@ public class MultidatabaseManager extends DatabaseManager {
         List<T> data = new ArrayList<>();
         Table table = this.dataObjectRegistry.getTableByDataClass(recordType);
 
-        for (MysqlDatabase database : this.databases.values()) {
+        for (SQLDatabase database : this.databases.values()) {
             if (database.getTables().containsKey(table.getName())) {
-                data.addAll(database.getAllData(this.dataSources.get(database.getHost().toLowerCase()), recordType, columnName, value));
+                data.addAll(database.getAllData(recordType, columnName, value));
             }
         }
 
         return data;
     }
-    
-    private <T extends IDataObject> Pair<MysqlDatabase, MysqlDataSource> getSourceAndDatabase(Class<T> recordType, String databaseName) {
-        Table table = this.dataObjectRegistry.getTableByDataClass(recordType);
-        MysqlDatabase mysqlDatabase = null;
 
-        for (MysqlDatabase database : this.databases.values()) {
+    private <T extends IDataObject> SQLDatabase getDatabaseFromDataType(Class<T> dataType, String databaseName) {
+        Table table = this.dataObjectRegistry.getTableByDataClass(dataType);
+        SQLDatabase mysqlDatabase = null;
+
+        for (SQLDatabase database : this.databases.values()) {
             if (database.getTables().containsKey(table.getName())) {
                 mysqlDatabase = database;
             }
         }
 
         if (mysqlDatabase == null) {
-            logger.severe("Error while trying to get data from the database " + databaseName + " using the IDataObject " + recordType.getName());
+            logger.severe("Error while trying to get data from the database " + databaseName + " using the IDataObject " + dataType.getName());
             return null;
         }
-
-        MysqlDataSource source = this.dataSources.get(mysqlDatabase.getHost().toLowerCase());
-        return new Pair(mysqlDatabase, source);
+        return mysqlDatabase;
     }
 
     public <T extends IDataObject> T getData(Class<T> recordType, String databaseName, String columnName, Object value) {
-        Pair<MysqlDatabase, MysqlDataSource> result = getSourceAndDatabase(recordType, databaseName);
-        return result.getValue1().getData(result.getValue2(), recordType, columnName, value);
+        SQLDatabase result = getDatabaseFromDataType(recordType, databaseName);
+        return result.getData(recordType, columnName, value);
     }
 
     public <T extends IDataObject> List<T> getAllData(Class<T> recordType, String databaseName, String columnName, Object value) {
-        Pair<MysqlDatabase, MysqlDataSource> result = getSourceAndDatabase(recordType, databaseName);
-        return result.getValue1().getAllData(result.getValue2(), recordType, columnName, value);
+        SQLDatabase result = getDatabaseFromDataType(recordType, databaseName);
+        return result.getAllData(recordType, columnName, value);
     }
 }

@@ -58,6 +58,10 @@
                                     <pattern>com.mysql.</pattern>
                                     <shadedPattern>com.starmediadev.shaded.com.mysql.</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>org.xerial.</pattern>
+                                    <shadedPattern>com.starmediadev.shaded.org.xerial.</shadedPattern>
+                                </relocation>
                             </relocations>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
@@ -122,6 +126,13 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.34.0</version>
+            <scope>compile</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>

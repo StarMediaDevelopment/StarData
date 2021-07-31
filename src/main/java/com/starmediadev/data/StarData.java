@@ -12,7 +12,7 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 public class StarData {
-    public static String driverClass;
+    public static String mysqlDriverClass, sqliteDriverClass;
 
     private TypeRegistry typeRegistry;
     private DataObjectRegistry dataObjectRegistry;
@@ -26,9 +26,18 @@ public class StarData {
             Class<?> sqlDriver = Class.forName("com.mysql.cj.jdbc.Driver");
             Constructor<?> constructor = sqlDriver.getDeclaredConstructor();
             Object o = constructor.newInstance();
-            driverClass = o.getClass().getName();
+            mysqlDriverClass = o.getClass().getName();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Error while loading the mysql driver class");
+        }
+        
+        try {
+            Class<?> sqlDriver = Class.forName("org.sqlite.JDBC");
+            Constructor<?> constructor = sqlDriver.getDeclaredConstructor();
+            Object o = constructor.newInstance();
+            sqliteDriverClass = o.getClass().getName();
+        } catch (Exception e) {
+            System.out.println("Problem with loading the sqlite driver class");
         }
     }
     
