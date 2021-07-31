@@ -31,7 +31,7 @@ public class StarData {
             e.printStackTrace();
         }
     }
-
+    
     public StarData(Logger logger) {
         this.logger = logger;
 

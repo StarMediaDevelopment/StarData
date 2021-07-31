@@ -42,49 +42,49 @@ public class MultidatabaseManager extends DatabaseManager {
     }
     
     public void saveData(IDataObject record) {
-        logger.info("Saving an object with the type " + record.getClass().getName());
+        logger.finest("Saving an object with the type " + record.getClass().getName());
         List<String> rawDatabases = new ArrayList<>();
         
         if (record.getDataInfo().getMappings().isEmpty()) {
-            logger.info("No current database mappings exist, adding specified databases");
+            logger.finest("No current database mappings exist, adding specified databases");
             rawDatabases.addAll(record.getDataInfo().getDatabases());
         } else {
-            logger.info("Database mappings exist for the data object");
+            logger.finest("Database mappings exist for the data object");
             rawDatabases.addAll(record.getDataInfo().getMappings().keySet());
         }
 
         Table table = dataObjectRegistry.getTableByDataClass(record.getClass());
-        logger.info("Table for the record is " + table.getName());
+        logger.finest("Table for the record is " + table.getName());
         if (rawDatabases.isEmpty()) {
-            logger.info("No databases existed from object data, adding databases from the table configuration");
+            logger.finest("No databases existed from object data, adding databases from the table configuration");
             rawDatabases.addAll(table.getDatabases());
-            logger.info("Configured Table databases: " + Utils.join(table.getDatabases(), ","));
+            logger.finest("Configured Table databases: " + Utils.join(table.getDatabases(), ","));
         }
         List<MysqlDatabase> databases = new ArrayList<>();
         if (!rawDatabases.isEmpty()) {
-            logger.info("Checking all databases specified");
+            logger.finest("Checking all databases specified");
             for (String database : rawDatabases) {
-                logger.info("Checking database " + database);
+                logger.finest("Checking database " + database);
                 MysqlDatabase mysqlDatabase = this.databases.get(database);
                 if (mysqlDatabase == null) {
                     return;
                 }
                 
                 databases.add(mysqlDatabase);
-                logger.info("Successfully checked database " + database);
+                logger.finest("Successfully checked database " + database);
             }
         } else {
-            logger.info("No databases provided, checking against all databases and registered tables");
+            logger.finest("No databases provided, checking against all databases and registered tables");
             for (MysqlDatabase database : this.databases.values()) {
-                logger.info("Checking database " + database.getDatabaseName());
+                logger.finest("Checking database " + database.getDatabaseName());
                 if (database.getTables().containsKey(table.getName())) {
-                    logger.info("Database " + database.getDatabaseName() + " has the table " + table.getName() + " registered");
+                    logger.finest("Database " + database.getDatabaseName() + " has the table " + table.getName() + " registered");
                    databases.add(database);
                 }
             }
         }
         
-        logger.info("Found a total of " + databases.size() + " databases that this data object can be saved to.");
+        logger.finest("Found a total of " + databases.size() + " databases that this data object can be saved to.");
 
         for (MysqlDatabase database : databases) {
             if (database.getTables().containsKey(table.getName())) {
@@ -105,11 +105,11 @@ public class MultidatabaseManager extends DatabaseManager {
     }
 
     public void registerTable(Table table, String... databases) {
-        logger.info("Registering the table " + table.getName());
+        logger.finest("Registering the table " + table.getName());
         if (databases != null) {
-            logger.info("Specified databases is not null");
+            logger.finest("Specified databases is not null");
             for (String database : databases) {
-                logger.info("Checking database name " + database);
+                logger.finest("Checking database name " + database);
                 MysqlDatabase mysqlDatabase = this.databases.get(database.toLowerCase());
                 if (mysqlDatabase == null) {
                     logger.severe("Could not find a database with the name " + database);
@@ -118,15 +118,15 @@ public class MultidatabaseManager extends DatabaseManager {
                 
                 mysqlDatabase.addTable(table);
                 table.addDatabase(mysqlDatabase.getDatabaseName());
-                logger.info("Registered table " + table.getName() + " with the database " + database);
+                logger.finest("Registered table " + table.getName() + " with the database " + database);
             }
         } else {
-            logger.info("No databases provided, this is now an all database table.");
+            logger.finest("No databases provided, this is now an all database table.");
             this.allDatabaseTables.add(table);
             for (MysqlDatabase database : this.databases.values()) {
                 database.addTable(table);
                 table.addDatabase(database.getDatabaseName());
-                logger.info("Registered table " + table.getName() + " with the database " + database.getDatabaseName());
+                logger.finest("Registered table " + table.getName() + " with the database " + database.getDatabaseName());
             }
         }
     }
@@ -156,7 +156,6 @@ public class MultidatabaseManager extends DatabaseManager {
     }
     
     public <T extends IDataObject> T getData(Class<T> recordType, String columnName, Object value) {
-        logger.warning("There is a use of a not recommended method in a multidatabase context.");
         List<T> data = new ArrayList<>();
         Table table = this.dataObjectRegistry.getTableByDataClass(recordType);
         
@@ -174,7 +173,6 @@ public class MultidatabaseManager extends DatabaseManager {
     }
 
     public <T extends IDataObject> List<T> getAllData(Class<T> recordType, String columnName, Object value) {
-        logger.warning("There is a use of a not recommended method in a multidatabase context.");
         List<T> data = new ArrayList<>();
         Table table = this.dataObjectRegistry.getTableByDataClass(recordType);
 

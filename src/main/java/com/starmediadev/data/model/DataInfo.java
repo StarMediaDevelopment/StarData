@@ -6,9 +6,6 @@ import java.util.Map;
 import java.util.Set;
 
 public final class DataInfo {
-    private int id; 
-    private String name;
-
     private Map<String, Integer> databaseIdMap = new HashMap<>();
     private Set<String> databases = new HashSet<>();
 
@@ -35,12 +32,10 @@ public final class DataInfo {
     public Integer getId(String database) {
         return this.databaseIdMap.get(database);
     }
-    
+
     public String toString() {
         return "DataInfo{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", databaseIdMap=" + databaseIdMap +
+                "databaseIdMap=" + databaseIdMap +
                 ", databases=" + databases +
                 '}';
     }

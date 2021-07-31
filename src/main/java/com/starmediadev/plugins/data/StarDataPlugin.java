@@ -38,11 +38,11 @@ public class StarDataPlugin extends JavaPlugin {
         var testThreeData = databaseManager.getAllData(TestThree.class, null, null);
 
         for (TestOne tod : testOneData) {
-            getLogger().info(tod.toString());
+            getLogger().finest(tod.toString());
         }
 
         for (TestThree ttd : testThreeData) {
-            getLogger().info(ttd.toString());
+            getLogger().finest(ttd.toString());
         }
     }
 

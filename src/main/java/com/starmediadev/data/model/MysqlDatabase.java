@@ -87,26 +87,26 @@ public class MysqlDatabase {
 
     public void saveData(MysqlDataSource dataSource, IDataObject record) {
         String don = record.getClass().getName();
-        logger.info("Saving a data object with the type " + don);
+        logger.finest("Saving a data object with the type " + don);
         Table table = dataObjectRegistry.getTableByDataClass(record.getClass());
         if (table == null) {
             logger.severe("Table for record " + record.getClass().getSimpleName() + " is null");
             return;
         }
-        logger.info(String.format("Found a table with the name %s for the type %s", table.getName(), don));
+        logger.finest(String.format("Found a table with the name %s for the type %s", table.getName(), don));
         Map<String, Object> serialized = new HashMap<>();
         Set<Field> fields = Utils.getClassFields(record.getClass());
         
-        logger.info(String.format("There are a total of %s fields for the type %s", fields.size(), don));
+        logger.finest(String.format("There are a total of %s fields for the type %s", fields.size(), don));
 
         for (Field field : fields) {
             field.setAccessible(true);
-            logger.info(String.format("Checking the field %s of the type %s", field.getName(), don));
+            logger.finest(String.format("Checking the field %s of the type %s", field.getName(), don));
 
             if (DataInfo.class.isAssignableFrom(field.getType())) {
-                logger.info(String.format("The field %s has the type of DataInfo", field.getName()));
+                logger.finest(String.format("The field %s has the type of DataInfo", field.getName()));
                 Integer id = record.getDataInfo().getId(databaseName);
-                logger.info(String.format("The id for the database %s is %s", databaseName, id));
+                logger.finest(String.format("The id for this entry in the database %s is %s", databaseName, id));
                 serialized.put("id", id);
                 continue;
             }
@@ -114,7 +114,7 @@ public class MysqlDatabase {
             ColumnInfo columnInfo = field.getAnnotation(ColumnInfo.class);
             if (columnInfo != null) {
                 if (columnInfo.ignored()) {
-                    logger.info(String.format("Field %s of the type %s is ignored for database use.", field.getName(), don));
+                    logger.finest(String.format("Field %s of the type %s is ignored for database use.", field.getName(), don));
                     continue;
                 }
             }
@@ -128,34 +128,40 @@ public class MysqlDatabase {
             }
 
             if (fieldValue == null) {
-                logger.info(String.format("Field %s of the type %s is null, ignoring", field.getName(), don));
+                logger.finest(String.format("Field %s of the type %s is null, ignoring", field.getName(), don));
                 continue;
             }
 
             if (fieldValue instanceof IDataObject dataObject) {
-                logger.info(String.format("Value of the field %s of the type %s is an IDataObject, recursively saving", field.getName(), don));
+                logger.finest(String.format("Value of the field %s of the type %s is an IDataObject, recursively saving", field.getName(), don));
                 starData.getDatabaseManager().saveData(dataObject);
                 String keys = Utils.join(dataObject.getDataInfo().getMappings().keySet(), ",");
                 String values = Utils.join(dataObject.getDataInfo().getMappings().values(), ",");
-                logger.severe("Value for the keys of the saved data object " + keys);
-                logger.severe("Value for the values of the saved data object " + values);
+                logger.finest("Value for the keys of the saved data object " + keys);
+                logger.finest("Value for the values of the saved data object " + values);
                 serialized.put(field.getName(), keys + ":" + values);
                 continue;
             }
 
             if (Collection.class.isAssignableFrom(field.getType())) {
-                logger.info(String.format("Field %s of the type %s is a Collection", field.getName(), don));
+                logger.finest(String.format("Field %s of the type %s is a Collection", field.getName(), don));
                 Collection collection = (Collection) fieldValue;
                 boolean collectionContainsRecord = false;
                 List<Integer> recordIds = new ArrayList<>();
                 List<Object> serializedElements = new ArrayList<>();
                 for (Object o : collection) {
                     if (o instanceof IDataObject rec) {
-                        logger.info(String.format("Element of the collection in field %s of type %s is an IDataObject", field.getName(), don));
+                        logger.finest(String.format("Element of the collection in field %s of type %s is an IDataObject", field.getName(), don));
                         starData.getDatabaseManager().saveData(rec);
                         collectionContainsRecord = true;
                         Integer id = rec.getDataInfo().getId(databaseName);
-                        logger.info(String.format("ID for the data object in the collection is %s", id));
+                        if (id == null) {
+                            for (Integer value : rec.getDataInfo().getMappings().values()) {
+                                id = value;
+                                break;
+                            }
+                        }
+                        logger.finest(String.format("ID for the data object in the collection is %s", id));
                         recordIds.add(id);
                     } else {
                         DataTypeHandler<?> handler = typeRegistry.getHandler(o.getClass());
@@ -163,7 +169,7 @@ public class MysqlDatabase {
                             logger.severe("Element type " + o.getClass().getName() + " of the field " + field.getName() + " of the record " + record.getClass().getName() + " does not have a DataTypeHandler and is not a Record");
                             break;
                         }
-                        logger.info(String.format("Element of the collection in field %s of type %s is handled by the handler %s", field.getName(), don, handler.getClass().getName()));
+                        logger.finest(String.format("Element of the collection in field %s of type %s is handled by the handler %s", field.getName(), don, handler.getClass().getName()));
                         serializedElements.add(handler.serializeSql(o));
                     }
                 }
@@ -180,7 +186,7 @@ public class MysqlDatabase {
                     continue;
                 }
                 
-                logger.info(String.format("Field %s of type %s is handled by %s", field.getName(), don, handler.getClass().getName()));
+                logger.finest(String.format("Field %s of type %s is handled by %s", field.getName(), don, handler.getClass().getName()));
 
                 if (fieldValue != null) {
                     serialized.put(field.getName(), handler.serializeSql(fieldValue));
@@ -188,7 +194,7 @@ public class MysqlDatabase {
             }
         }
         
-        logger.info("Finished generating information from the object.");
+        logger.finest("Finished generating information from the object.");
 
         DataInfo dataInfo = record.getDataInfo();
 
@@ -198,7 +204,7 @@ public class MysqlDatabase {
         String where = Statements.WHERE.replace("{column}", "id").replace("{value}", dataInfo.getId(databaseName) + "");
         String selectSql = Statements.SELECT.replace("{database}", this.databaseName).replace("{table}", table.getName()) + " " + where;
 
-        logger.info("Checking to see if existing data exists...");
+        logger.finest("Checking to see if existing data exists...");
         try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement(); ResultSet resultSet = statement.executeQuery(selectSql)) {
             if (resultSet.next()) {
                 Row row = new Row(table, resultSet, this, starData);
@@ -221,7 +227,7 @@ public class MysqlDatabase {
 
                     querySQL = Statements.UPDATE.replace("{values}", sb.toString()).replace("{location}", "id=" + dataInfo.getId(databaseName));
                     querySQL = querySQL.replace("{table}", table.getName()).replace("{database}", databaseName);
-                    logger.info("Data exists for the id provided, using an update query");
+                    logger.finest("Data exists for the id provided, using an update query");
                 }
             }
         } catch (Exception e) {
@@ -236,13 +242,13 @@ public class MysqlDatabase {
                 System.out.println(querySQL);
             }
         } else {
-            logger.info("No existing data is present, using an insert statement");
+            logger.finest("No existing data is present, using an insert statement");
             StringBuilder colBuilder = new StringBuilder(), valueBuilder = new StringBuilder();
             Iterator<Column> columnIterator = table.getColumns().iterator();
             while (columnIterator.hasNext()) {
                 Column column = columnIterator.next();
                 if (column.isUnique() && !columnIterator.hasNext()) {
-                    System.out.println("Column " + column.getName() + " is unique and there is no next values");
+                    logger.finest("Column " + column.getName() + " is unique and there is no next values");
                     colBuilder.deleteCharAt(colBuilder.lastIndexOf(","));
                     valueBuilder.deleteCharAt(valueBuilder.lastIndexOf(","));
                     continue;
@@ -260,20 +266,26 @@ public class MysqlDatabase {
 
             try (Connection con = dataSource.getConnection(); PreparedStatement statement = con.prepareStatement(querySQL, Statement.RETURN_GENERATED_KEYS)) {
                 int affectedRows = statement.executeUpdate();
+                logger.finest("Total affected rows for insert is " + affectedRows);
                 if (affectedRows == 0) {
                     return;
                 }
                 try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
-                        record.getDataInfo().addMapping(databaseName, generatedKeys.getInt(1));
+                        int generated = generatedKeys.getInt(1);
+                        logger.finest("Generated id for record is " + generated);
+                        record.getDataInfo().addMapping(databaseName, generated);
+                        logger.finest("DataInfo " + record.getDataInfo());
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println(querySQL);
             }
         }
-        logger.info(String.format("Saved a data object with the type %s", don));
+        logger.finest(String.format("Saved a data object with the type %s", don));
     }
 
     private Object serializeCollection(MysqlDataSource dataSource, IDataObject record, Field field, Object fieldValue, String join, List<Object> serializedElements) {
