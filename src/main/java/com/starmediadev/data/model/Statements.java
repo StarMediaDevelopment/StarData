@@ -1,5 +1,13 @@
 package com.starmediadev.data.model;
 
+/*
+Replace this with a builder or appendable type builder. 
+Main class will be called SQLStatement or something, or query 
+This will just be a base class with a few abstract methods as no one statement is similar and a toSql() method that will build the actual statement
+
+Then each statement will have a subclass with a builder pattern that will have settings for each thing
+For example, the create table statement will have a field for the database, table and columns and when the toSql() method is called it will transform it into the actual statement
+ */
 public final class Statements {
     private Statements() {}
     

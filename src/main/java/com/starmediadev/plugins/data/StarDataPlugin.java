@@ -22,7 +22,7 @@ public class StarDataPlugin extends JavaPlugin {
         starData.setDatabaseManager(databaseManager);
         //Databases
 
-        SqlProperties sqlProperties = new SqlProperties().setHost("localhost").setUsername("root").setPassword("password1").setPort(3306);
+        SqlProperties sqlProperties = new SqlProperties().setHost("localhost").setUsername("root").setPassword("niles3408").setPort(3306);
         
         databaseManager.setupDatabase(sqlProperties.clone().setDatabase("test"));
         databaseManager.setupDatabase(sqlProperties.clone().setDatabase("test2"));
