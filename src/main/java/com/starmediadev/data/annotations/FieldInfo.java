@@ -1,5 +1,7 @@
 package com.starmediadev.data.annotations;
 
+import com.starmediadev.data.model.FieldHandler;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -7,10 +9,6 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-public @interface ColumnInfo {
-    int length() default 100;
-
-    boolean ignored() default false;
-    
-    String name() default "";
+public @interface FieldInfo {
+    Class<? extends FieldHandler> fieldHandler();
 }

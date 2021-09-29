@@ -3,6 +3,7 @@ package com.starmediadev.data.model;
 import com.starmediadev.data.StarData;
 import com.starmediadev.data.annotations.ColumnIgnored;
 import com.starmediadev.data.annotations.ColumnInfo;
+import com.starmediadev.data.annotations.FieldInfo;
 import com.starmediadev.data.annotations.TableInfo;
 import com.starmediadev.data.handlers.DataTypeHandler;
 import com.starmediadev.data.model.source.DataSource;
@@ -11,11 +12,10 @@ import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.data.registries.TypeRegistry;
 import com.starmediadev.utils.Utils;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 public class SQLDatabase {
@@ -104,6 +104,8 @@ public class SQLDatabase {
         for (Field field : fields) {
             field.setAccessible(true);
             logger.finest(String.format("Checking the field %s of the type %s", field.getName(), don));
+            
+            AtomicBoolean skip = new AtomicBoolean(false);
 
             if (DataInfo.class.isAssignableFrom(field.getType())) {
                 logger.finest(String.format("The field %s has the type of DataInfo", field.getName()));
@@ -117,88 +119,118 @@ public class SQLDatabase {
             if (columnInfo != null) {
                 if (columnInfo.ignored()) {
                     logger.finest(String.format("Field %s of the type %s is ignored for database use.", field.getName(), don));
-                    continue;
+                    skip.set(true);
                 }
             }
 
             ColumnIgnored columnIgnored = field.getAnnotation(ColumnIgnored.class);
             if (columnIgnored != null) {
                 logger.finest(String.format("Field %s of the type %s is ignored for database use.", field.getName(), don));
-                continue;
+                skip.set(true);
             }
 
-            Object fieldValue;
+            final Object[] fieldValue = new Object[1];
             try {
-                fieldValue = field.get(record);
+                fieldValue[0] = field.get(record);
             } catch (IllegalAccessException e) {
                 logger.severe("Could not access field " + field.getName() + " in class " + record.getClass().getName() + " because " + e.getMessage());
                 continue;
             }
 
-            if (fieldValue == null) {
+            if (fieldValue[0] == null) {
                 logger.finest(String.format("Field %s of the type %s is null, ignoring", field.getName(), don));
                 continue;
             }
-
-            if (fieldValue instanceof IDataObject dataObject) {
-                logger.finest(String.format("Value of the field %s of the type %s is an IDataObject, recursively saving", field.getName(), don));
-                starData.getDatabaseManager().saveData(dataObject);
-                String keys = Utils.join(dataObject.getDataInfo().getMappings().keySet(), ",");
-                String values = Utils.join(dataObject.getDataInfo().getMappings().values(), ",");
-                logger.finest("Value for the keys of the saved data object " + keys);
-                logger.finest("Value for the values of the saved data object " + values);
-                serialized.put(field.getName(), keys + ":" + values);
-                continue;
-            }
-
-            if (Collection.class.isAssignableFrom(field.getType())) {
-                logger.finest(String.format("Field %s of the type %s is a Collection", field.getName(), don));
-                Collection collection = (Collection) fieldValue;
-                boolean collectionContainsRecord = false;
-                List<Integer> recordIds = new ArrayList<>();
-                List<Object> serializedElements = new ArrayList<>();
-                for (Object o : collection) {
-                    if (o instanceof IDataObject rec) {
-                        logger.finest(String.format("Element of the collection in field %s of type %s is an IDataObject", field.getName(), don));
-                        starData.getDatabaseManager().saveData(rec);
-                        collectionContainsRecord = true;
-                        Integer id = rec.getDataInfo().getId(name);
-                        if (id == null) {
-                            for (Integer value : rec.getDataInfo().getMappings().values()) {
-                                id = value;
+            
+            SaveAction saveAction = null;
+            if (fieldValue[0] instanceof IDataObject dataObject) {
+                saveAction = () -> {
+                    logger.finest(String.format("Value of the field %s of the type %s is an IDataObject, recursively saving", field.getName(), don));
+                    starData.getDatabaseManager().saveData(dataObject);
+                    String keys = Utils.join(dataObject.getDataInfo().getMappings().keySet(), ",");
+                    String values = Utils.join(dataObject.getDataInfo().getMappings().values(), ",");
+                    logger.finest("Value for the keys of the saved data object " + keys);
+                    logger.finest("Value for the values of the saved data object " + values);
+                    serialized.put(field.getName(), keys + ":" + values);
+                };
+            } else if (Collection.class.isAssignableFrom(field.getType())) {
+                saveAction = () -> {
+                    logger.finest(String.format("Field %s of the type %s is a Collection", field.getName(), don));
+                    Collection collection = (Collection) fieldValue[0];
+                    boolean collectionContainsRecord = false;
+                    List<Integer> recordIds = new ArrayList<>();
+                    List<Object> serializedElements = new ArrayList<>();
+                    for (Object o : collection) {
+                        if (o instanceof IDataObject rec) {
+                            logger.finest(String.format("Element of the collection in field %s of type %s is an IDataObject", field.getName(), don));
+                            starData.getDatabaseManager().saveData(rec);
+                            collectionContainsRecord = true;
+                            Integer id = rec.getDataInfo().getId(name);
+                            if (id == null) {
+                                for (Integer value : rec.getDataInfo().getMappings().values()) {
+                                    id = value;
+                                    break;
+                                }
+                            }
+                            logger.finest(String.format("ID for the data object in the collection is %s", id));
+                            recordIds.add(id);
+                        } else {
+                            DataTypeHandler<?> handler = typeRegistry.getHandler(o.getClass());
+                            if (handler == null) {
+                                logger.severe("Element type " + o.getClass().getName() + " of the field " + field.getName() + " of the record " + record.getClass().getName() + " does not have a DataTypeHandler and is not a Record");
                                 break;
                             }
+                            logger.finest(String.format("Element of the collection in field %s of type %s is handled by the handler %s", field.getName(), don, handler.getClass().getName()));
+                            serializedElements.add(handler.serializeSql(o));
                         }
-                        logger.finest(String.format("ID for the data object in the collection is %s", id));
-                        recordIds.add(id);
-                    } else {
-                        DataTypeHandler<?> handler = typeRegistry.getHandler(o.getClass());
-                        if (handler == null) {
-                            logger.severe("Element type " + o.getClass().getName() + " of the field " + field.getName() + " of the record " + record.getClass().getName() + " does not have a DataTypeHandler and is not a Record");
-                            break;
-                        }
-                        logger.finest(String.format("Element of the collection in field %s of type %s is handled by the handler %s", field.getName(), don, handler.getClass().getName()));
-                        serializedElements.add(handler.serializeSql(o));
                     }
-                }
-                if (collectionContainsRecord) {
-                    fieldValue = serializeCollection(record, field, fieldValue, Utils.join(recordIds, ","), serializedElements);
-                } else if (!serializedElements.isEmpty()) {
-                    fieldValue = serializeCollection(record, field, fieldValue, Utils.join(serializedElements, ","), serializedElements);
-                }
-                serialized.put(field.getName(), fieldValue);
+                    if (collectionContainsRecord) {
+                        fieldValue[0] = serializeCollection(record, field, fieldValue[0], Utils.join(recordIds, ","), serializedElements);
+                    } else if (!serializedElements.isEmpty()) {
+                        fieldValue[0] = serializeCollection(record, field, fieldValue[0], Utils.join(serializedElements, ","), serializedElements);
+                    }
+                    serialized.put(field.getName(), fieldValue[0]);
+                };
             } else {
-                DataTypeHandler<?> handler = table.getColumn(field.getName()).getTypeHandler();
-                if (handler == null) {
-                    logger.severe("There is no DataTypeHandler for field " + field.getName() + " in class " + record.getClass().getName());
+                saveAction = () -> {
+                    DataTypeHandler<?> handler = table.getColumn(field.getName()).getTypeHandler();
+                    if (handler == null) {
+                        logger.severe("There is no DataTypeHandler for field " + field.getName() + " in class " + record.getClass().getName());
+                        skip.set(true);
+                        return;
+                    }
+
+                    logger.finest(String.format("Field %s of type %s is handled by %s", field.getName(), don, handler.getClass().getName()));
+
+                    if (fieldValue[0] != null) {
+                        serialized.put(field.getName(), handler.serializeSql(fieldValue[0]));
+                    }  
+                };
+            }
+            
+            if (field.isAnnotationPresent(FieldInfo.class)) {
+                FieldInfo fieldInfo = field.getAnnotation(FieldInfo.class);
+                Class<? extends FieldHandler> handlerClass = fieldInfo.fieldHandler();
+                if (Modifier.isAbstract(handlerClass.getModifiers())) {
+                    logger.severe("Handler class for field " + field.getName() + " in IDataObject " + don + " is abstract.");
                     continue;
                 }
-
-                logger.finest(String.format("Field %s of type %s is handled by %s", field.getName(), don, handler.getClass().getName()));
-
-                if (fieldValue != null) {
-                    serialized.put(field.getName(), handler.serializeSql(fieldValue));
+                FieldHandler fieldHandler;
+                try {
+                    fieldHandler = handlerClass.getConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+                    e.printStackTrace();
+                    continue;
                 }
+                
+                fieldHandler.onSave(field, fieldValue[0], record, serialized);
+                if (fieldHandler.providesValue()) {
+                    skip.set(true);
+                }
+            }
+            
+            if (!skip.get()) {
+                saveAction.save();
             }
         }
 
