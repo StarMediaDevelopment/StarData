@@ -3,9 +3,10 @@ package com.starmediadev.data.model;
 import com.starmediadev.data.StarData;
 import com.starmediadev.data.annotations.ColumnIgnored;
 import com.starmediadev.data.annotations.ColumnInfo;
+import com.starmediadev.data.annotations.FieldInfo;
 import com.starmediadev.data.handlers.CollectionHandler;
-import com.starmediadev.data.handlers.DataTypeHandler;
 import com.starmediadev.data.handlers.DataObjectHandler;
+import com.starmediadev.data.handlers.DataTypeHandler;
 import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.utils.Utils;
 
@@ -13,6 +14,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 class Row {
@@ -42,6 +44,10 @@ class Row {
         Logger logger = database.getLogger();
         String don = recordClass.getName();
         logger.finest(String.format("Parsing data object of type %s", don));
+
+        AtomicBoolean skip = new AtomicBoolean(false);
+        LoadAction loadAction = null;
+        
         try {
             Table table = dataObjectRegistry.getTableByDataClass(recordClass);
             logger.finest(String.format("Table for type %s is %s", don, table.getName()));
@@ -73,23 +79,29 @@ class Row {
                 }
                 
                 if (DataInfo.class.isAssignableFrom(field.getType())) {
-                    logger.finest(String.format("Field %s of type %s is a DataInfo", fn, don));
-                    Integer id = (Integer) this.dataMap.get("id");
-                    logger.finest(String.format("ID of the data object is %s", id));
-                    if (field.get(record) == null) {
-                        logger.finest(String.format("Field %s is null, creating a new instance", fn));
-                        DataInfo dataInfo = new DataInfo();
-                        dataInfo.addMapping(database.getName(), id);
-                        field.set(record, dataInfo);
-                    } else {
-                        record.getDataInfo().addMapping(database.getName(), id);
-                    }
-                    continue;
+                    loadAction = () -> {
+                        logger.finest(String.format("Field %s of type %s is a DataInfo", fn, don));
+                        Integer id = (Integer) this.dataMap.get("id");
+                        logger.finest(String.format("ID of the data object is %s", id));
+                        try {
+                            if (field.get(record) == null) {
+                                logger.finest(String.format("Field %s is null, creating a new instance", fn));
+                                DataInfo dataInfo = new DataInfo();
+                                dataInfo.addMapping(database.getName(), id);
+                                field.set(record, dataInfo);
+                            } else {
+                                record.getDataInfo().addMapping(database.getName(), id);
+                            }
+                        } catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                        }
+                        skip.set(true);
+                    };
                 }
                 String columnName = field.getName();
                 Column column = table.getColumn(columnName);
                 logger.finest(String.format("Column for field %s of type %s is %s", fn, don, column));
-                Object object = null;
+                final Object[] object = {null};
                 Object dataObject = this.dataMap.get(field.getName());
                 logger.finest(String.format("Raw value of the field %s of type %s is %s", fn, don, dataObject));
                 if (dataObject != null) {
@@ -100,57 +112,85 @@ class Row {
                         }
                     }
                     if (column.getTypeHandler() instanceof CollectionHandler) {
-                        logger.finest(String.format("Field %s of type %s is a collection", fn, don));
-                        try {
-                            String[] split = ((String) dataObject).split(":");
-                            Class<? extends Collection> collectionType = (Class<? extends Collection>) Class.forName(split[0]);
-                            logger.finest(String.format("Collection of field %s of type %s has the element type %s", fn, don, collectionType.getName()));
-                            Class<?> elementType = Class.forName(split[1]);
-                            Collection collection = collectionType.getDeclaredConstructor().newInstance();
-                            String[] elementSplit = split[2].split(",");
-                            for (String e : elementSplit) {
-                                if (IDataObject.class.isAssignableFrom(elementType)) {
-                                    logger.finest(String.format("Element type of field %s of type %s is an IDataObject", fn, don));
-                                    int id = Integer.parseInt(e);
-                                    logger.finest(String.format("ID for the element of field %s of %s is %s", fn, don, id));
-                                    IDataObject colRecord = starData.getDatabaseManager().getData((Class<? extends IDataObject>) elementType, "id", id);
-                                    logger.finest(String.format("Value for the element of field %s of type %s is %s", fn, don, colRecord));
-                                    collection.add(colRecord);
-                                } else {
-                                    DataTypeHandler<?> handler = database.getTypeRegistry().getHandler(elementType);
-                                    if (handler == null) {
-                                        database.getLogger().severe("The field " + field.getName() + " in record " + recordClass.getName() + " is a collection and the element type does not have a DataTypeHandler");
-                                        return null;
-                                    }
-                                    
-                                    logger.finest(String.format("The element field %s of type %s is handled by %s", fn, don, handler.getClass().getName()));
+                        loadAction = () -> {
+                            logger.finest(String.format("Field %s of type %s is a collection", fn, don));
+                            try {
+                                String[] split = ((String) dataObject).split(":");
+                                Class<? extends Collection> collectionType = (Class<? extends Collection>) Class.forName(split[0]);
+                                logger.finest(String.format("Collection of field %s of type %s has the element type %s", fn, don, collectionType.getName()));
+                                Class<?> elementType = Class.forName(split[1]);
+                                Collection collection = collectionType.getDeclaredConstructor().newInstance();
+                                String[] elementSplit = split[2].split(",");
+                                for (String e : elementSplit) {
+                                    if (IDataObject.class.isAssignableFrom(elementType)) {
+                                        logger.finest(String.format("Element type of field %s of type %s is an IDataObject", fn, don));
+                                        int id = Integer.parseInt(e);
+                                        logger.finest(String.format("ID for the element of field %s of %s is %s", fn, don, id));
+                                        IDataObject colRecord = starData.getDatabaseManager().getData((Class<? extends IDataObject>) elementType, "id", id);
+                                        logger.finest(String.format("Value for the element of field %s of type %s is %s", fn, don, colRecord));
+                                        collection.add(colRecord);
+                                    } else {
+                                        DataTypeHandler<?> handler = database.getTypeRegistry().getHandler(elementType);
+                                        if (handler == null) {
+                                            database.getLogger().severe("The field " + field.getName() + " in record " + recordClass.getName() + " is a collection and the element type does not have a DataTypeHandler");
+                                            skip.set(true);
+                                            return;
+                                        }
 
-                                    Object o = handler.deserialize(e);
-                                    logger.finest(String.format("Element value of the collection of the field %s of type %s is %s", fn, don, o));
-                                    collection.add(o);
+                                        logger.finest(String.format("The element field %s of type %s is handled by %s", fn, don, handler.getClass().getName()));
+
+                                        Object o = handler.deserialize(e);
+                                        logger.finest(String.format("Element value of the collection of the field %s of type %s is %s", fn, don, o));
+                                        collection.add(o);
+                                    }
                                 }
+                                object[0] = collection;
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
-                            object = collection;
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        };
                     } else if (column.getTypeHandler() instanceof DataObjectHandler) {
-                        logger.finest(String.format("Field %s of type %s is an IDataObject", fn, don));
-                        String rawData = (String) this.dataMap.get(field.getName());
-                        logger.finest(String.format("The raw data of field %s of type %s is %s", fn, don, rawData));
-                        String[] rawSplitMain = rawData.split(":");
-                        logger.finest(String.format("The main split value of field %s of type %s is %s", fn, don, Arrays.toString(rawSplitMain)));
-                        String database = rawSplitMain[0].split(",")[0];
-                        int id = Integer.parseInt(rawSplitMain[1].split(",")[0]);
-                        object = starData.getDatabaseManager().getData(((Class<? extends IDataObject>) field.getType()), database, "id", id);
-                        logger.finest(String.format("Parsed data of field %s of type %s is %s", fn, don, object));
+                        loadAction = () -> {
+                            logger.finest(String.format("Field %s of type %s is an IDataObject", fn, don));
+                            String rawData = (String) this.dataMap.get(field.getName());
+                            logger.finest(String.format("The raw data of field %s of type %s is %s", fn, don, rawData));
+                            String[] rawSplitMain = rawData.split(":");
+                            logger.finest(String.format("The main split value of field %s of type %s is %s", fn, don, Arrays.toString(rawSplitMain)));
+                            String database = rawSplitMain[0].split(",")[0];
+                            int id = Integer.parseInt(rawSplitMain[1].split(",")[0]);
+                            object[0] = starData.getDatabaseManager().getData(((Class<? extends IDataObject>) field.getType()), database, "id", id);
+                            logger.finest(String.format("Parsed data of field %s of type %s is %s", fn, don, object[0]));  
+                        };
                     } else {
-                        object = column.getTypeHandler().deserialize(dataObject, field.getType());
-                        logger.finest(String.format("Deserialized data of field %s of type %s is %s", fn, don, object));
+                        loadAction = () -> {
+                            object[0] = column.getTypeHandler().deserialize(dataObject, field.getType());
+                            logger.finest(String.format("Deserialized data of field %s of type %s is %s", fn, don, object[0]));
+                        };
                     }
                 }
-                if (object != null) {
-                    field.set(record, object);
+                
+                if (field.isAnnotationPresent(FieldInfo.class)) {
+                    FieldInfo fieldInfo = field.getAnnotation(FieldInfo.class);
+                    Class<? extends FieldHandler> handlerClass = fieldInfo.fieldHandler();
+                    Constructor<?> handlerConstructor = handlerClass.getConstructor();
+                    handlerConstructor.setAccessible(true);
+                    FieldHandler o = (FieldHandler) handlerConstructor.newInstance();
+                    if (o.providesValue()) {
+                        loadAction = () -> {
+                            try {
+                                object[0] = o.onLoad(field, field.get(record), record);
+                            } catch (IllegalAccessException e) {
+                                e.printStackTrace();
+                            }
+                        };
+                    }
+                }
+                
+                if (!skip.get()) {
+                    loadAction.load();
+                    if (object[0] != null) {
+                        field.set(record, object[0]);
+                    }
                 }
             }
             return record;

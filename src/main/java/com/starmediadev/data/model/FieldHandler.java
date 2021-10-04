@@ -24,5 +24,5 @@ public interface FieldHandler {
     /**
      * This method is for when the field is being processed for being loaded from the database into an object.
      */
-    void onLoad( Field field, Object value, Object parent);
+    Object onLoad( Field field, Object value, Object parent);
 }

@@ -142,7 +142,7 @@ public class SQLDatabase {
                 continue;
             }
             
-            SaveAction saveAction = null;
+            SaveAction saveAction;
             if (fieldValue[0] instanceof IDataObject dataObject) {
                 saveAction = () -> {
                     logger.finest(String.format("Value of the field %s of the type %s is an IDataObject, recursively saving", field.getName(), don));
