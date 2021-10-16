@@ -5,7 +5,7 @@ import com.starmediadev.data.model.IDataObject;
 import com.starmediadev.data.model.SQLDatabase;
 import com.starmediadev.data.model.source.DataSource;
 import com.starmediadev.data.model.source.MysqlDataSource;
-import com.starmediadev.data.model.Table;
+import com.starmediadev.data.internal.objects.Table;
 import com.starmediadev.data.model.source.SqliteDataSource;
 import com.starmediadev.data.properties.MysqlProperties;
 import com.starmediadev.data.properties.SqlProperties;
@@ -27,7 +27,7 @@ public class MultidatabaseManager extends DatabaseManager {
         DataSource dataSource = null;
         String databaseName = "";
         if (properties instanceof MysqlProperties mysqlProperties) {
-            dataSource = new MysqlDataSource(mysqlProperties.toJDBCUrl(), mysqlProperties.getUsername(), mysqlProperties.getPassword());
+            dataSource = new MysqlDataSource(mysqlProperties.toJDBCUrl(), mysqlProperties.getDatabase(), mysqlProperties.getUsername(), mysqlProperties.getPassword());
             databaseName = mysqlProperties.getDatabase().toLowerCase();
         } else if (properties instanceof SqliteProperties sqliteProperties) {
             dataSource = new SqliteDataSource(sqliteProperties.getFile());

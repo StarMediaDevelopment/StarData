@@ -10,8 +10,9 @@ import java.sql.SQLException;
 public class MysqlDataSource implements DataSource {
     private final HikariConfig config = new HikariConfig();
     private final HikariDataSource ds;
-    
-    public MysqlDataSource(String url, String username, String password) {
+    private final String name;
+
+    public MysqlDataSource(String url, String name, String username, String password) {
         config.setJdbcUrl(url);
         config.setUsername(username);
         config.setPassword(password);
@@ -22,8 +23,13 @@ public class MysqlDataSource implements DataSource {
         config.setMaximumPoolSize(50);
         config.setDriverClassName(StarData.mysqlDriverClass);
         ds = new HikariDataSource(config);
+        this.name = name;
     }
-    
+
+    public String getName() {
+        return name;
+    }
+
     public Connection getConnection() {
         try {
             return ds.getConnection();

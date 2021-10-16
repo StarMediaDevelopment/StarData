@@ -10,6 +10,10 @@ public class MysqlProperties extends SqlProperties {
         setPassword(properties.getPassword());
     }
     
+    public MysqlProperties() {
+        
+    }
+    
     public String getUsername() {
         return properties.getProperty("mysql-username");
     }
@@ -30,31 +34,31 @@ public class MysqlProperties extends SqlProperties {
         return Integer.parseInt(properties.getProperty("mysql-port"));
     }
 
-    public SqlProperties setDatabase(String database) {
+    public MysqlProperties setDatabase(String database) {
         if (database != null)
             this.properties.put("mysql-database", database);
         return this;
     }
 
-    public SqlProperties setHost(String host) {
+    public MysqlProperties setHost(String host) {
         if (host != null)
             this.properties.put("mysql-host", host);
         return this;
     }
 
-    public SqlProperties setUsername(String username) {
+    public MysqlProperties setUsername(String username) {
         if (username != null)
             this.properties.put("mysql-username", username);
         return this;
     }
 
-    public SqlProperties setPassword(String password) {
+    public MysqlProperties setPassword(String password) {
         if (password != null)
             this.properties.put("mysql-password", password);
         return this;
     }
 
-    public SqlProperties setPort(int port) {
+    public MysqlProperties setPort(int port) {
         if (port != 0)
             this.properties.put("mysql-port", port + "");
         return this;

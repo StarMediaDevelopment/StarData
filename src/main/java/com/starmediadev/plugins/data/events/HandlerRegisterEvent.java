@@ -1,7 +1,7 @@
 package com.starmediadev.plugins.data.events;
 
 import com.starmediadev.data.StarData;
-import com.starmediadev.data.handlers.DataTypeHandler;
+import com.starmediadev.data.model.DataTypeHandler;
 
 import java.util.HashSet;
 import java.util.Set;

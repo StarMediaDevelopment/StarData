@@ -1,10 +1,10 @@
 package com.starmediadev.data.manager;
 
 import com.starmediadev.data.StarData;
-import com.starmediadev.data.handlers.DataTypeHandler;
+import com.starmediadev.data.model.DataTypeHandler;
 import com.starmediadev.data.model.IDataObject;
 import com.starmediadev.data.model.SQLDatabase;
-import com.starmediadev.data.model.Table;
+import com.starmediadev.data.internal.objects.Table;
 import com.starmediadev.data.properties.SqlProperties;
 import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.data.registries.TypeRegistry;

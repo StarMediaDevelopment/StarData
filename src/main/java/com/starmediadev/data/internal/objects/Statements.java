@@ -1,4 +1,4 @@
-package com.starmediadev.data.model;
+package com.starmediadev.data.internal.objects;
 
 /*
 Replace this with a builder or appendable type builder. 

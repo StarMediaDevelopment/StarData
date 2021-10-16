@@ -1,0 +1,20 @@
+module starmediadev.stardata {
+    requires transitive starutils;
+    requires transitive com.zaxxer.hikari;
+    requires static org.bukkit;
+    requires java.logging;
+    requires java.sql;
+    
+    exports com.starmediadev.data;
+    exports com.starmediadev.data.annotations;
+    exports com.starmediadev.data.manager;
+    exports com.starmediadev.data.model;
+    exports com.starmediadev.data.internal.objects;
+    exports com.starmediadev.data.properties;
+    exports com.starmediadev.data.registries;
+    exports com.starmediadev.plugins.data;
+    exports com.starmediadev.plugins.data.events;
+    exports com.starmediadev.data.model.source;
+    
+    uses java.sql.Driver;
+}

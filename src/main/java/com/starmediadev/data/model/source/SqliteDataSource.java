@@ -21,4 +21,8 @@ public class SqliteDataSource implements DataSource {
         }
         return null;
     }
+
+    public String getName() {
+        return fileLocation.getFileName().toString().substring(0, fileLocation.getFileName().toString().lastIndexOf('.'));
+    }
 }

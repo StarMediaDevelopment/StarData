@@ -1,7 +1,7 @@
 package com.starmediadev.plugins.data;
 
 import com.starmediadev.data.StarData;
-import com.starmediadev.data.handlers.DataTypeHandler;
+import com.starmediadev.data.model.DataTypeHandler;
 import com.starmediadev.data.manager.DatabaseManager;
 import com.starmediadev.data.manager.MultidatabaseManager;
 import com.starmediadev.data.model.IDataObject;

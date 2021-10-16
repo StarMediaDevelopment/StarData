@@ -5,7 +5,10 @@ import com.starmediadev.data.annotations.ColumnIgnored;
 import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.annotations.FieldInfo;
 import com.starmediadev.data.annotations.TableInfo;
-import com.starmediadev.data.handlers.DataTypeHandler;
+import com.starmediadev.data.internal.objects.Column;
+import com.starmediadev.data.internal.objects.Row;
+import com.starmediadev.data.internal.objects.Statements;
+import com.starmediadev.data.internal.objects.Table;
 import com.starmediadev.data.model.source.DataSource;
 import com.starmediadev.data.properties.SqlProperties;
 import com.starmediadev.data.registries.DataObjectRegistry;
@@ -39,6 +42,8 @@ public class SQLDatabase {
         this.typeRegistry = starData.getTypeRegistry();
         this.dataObjectRegistry = starData.getDataObjectRegistry();
         this.dataSource = dataSource;
+        this.name = dataSource.getName();
+        System.out.println(name);
     }
 
     public <T extends IDataObject> List<T> getAllData(Class<T> recordType, String columnName, Object value) {
@@ -88,6 +93,7 @@ public class SQLDatabase {
     }
 
     public void saveData(IDataObject record) {
+        //TODO null data for datainfo getID
         String don = record.getClass().getName();
         logger.finest("Saving a data object with the type " + don);
         Table table = dataObjectRegistry.getTableByDataClass(record.getClass());

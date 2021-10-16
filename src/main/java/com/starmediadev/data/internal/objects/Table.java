@@ -1,8 +1,11 @@
-package com.starmediadev.data.model;
+package com.starmediadev.data.internal.objects;
 
 import com.starmediadev.utils.collection.IncrementalMap;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 public class Table {
     protected final String name;
@@ -20,7 +23,7 @@ public class Table {
             this.columns.add(column);
         }
     }
-    
+
     public void addDatabase(String database) {
         this.databases.add(database);
     }

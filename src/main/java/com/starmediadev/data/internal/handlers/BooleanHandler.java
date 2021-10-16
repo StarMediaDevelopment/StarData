@@ -1,5 +1,6 @@
-package com.starmediadev.data.handlers;
+package com.starmediadev.data.internal.handlers;
 
+import com.starmediadev.data.model.DataTypeHandler;
 import com.starmediadev.data.model.DataType;
 
 public class BooleanHandler extends DataTypeHandler<Boolean> {

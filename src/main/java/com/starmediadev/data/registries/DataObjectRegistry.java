@@ -3,11 +3,11 @@ package com.starmediadev.data.registries;
 import com.starmediadev.data.annotations.ColumnIgnored;
 import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.annotations.TableInfo;
-import com.starmediadev.data.handlers.DataTypeHandler;
-import com.starmediadev.data.model.Column;
+import com.starmediadev.data.model.DataTypeHandler;
+import com.starmediadev.data.internal.objects.Column;
 import com.starmediadev.data.model.DataInfo;
 import com.starmediadev.data.model.IDataObject;
-import com.starmediadev.data.model.Table;
+import com.starmediadev.data.internal.objects.Table;
 import com.starmediadev.utils.Utils;
 
 import java.lang.reflect.Field;

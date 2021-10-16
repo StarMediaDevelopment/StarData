@@ -1,4 +1,4 @@
-package com.starmediadev.data.model;
+package com.starmediadev.data.internal.objects;
 
 import java.util.HashMap;
 import java.util.Map;

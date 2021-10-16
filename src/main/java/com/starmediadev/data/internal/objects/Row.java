@@ -1,12 +1,12 @@
-package com.starmediadev.data.model;
+package com.starmediadev.data.internal.objects;
 
 import com.starmediadev.data.StarData;
 import com.starmediadev.data.annotations.ColumnIgnored;
 import com.starmediadev.data.annotations.ColumnInfo;
 import com.starmediadev.data.annotations.FieldInfo;
-import com.starmediadev.data.handlers.CollectionHandler;
-import com.starmediadev.data.handlers.DataObjectHandler;
-import com.starmediadev.data.handlers.DataTypeHandler;
+import com.starmediadev.data.internal.handlers.CollectionHandler;
+import com.starmediadev.data.internal.handlers.DataObjectHandler;
+import com.starmediadev.data.model.*;
 import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.utils.Utils;
 
@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
-class Row {
+public class Row {
     private final StarData starData;
     private final SQLDatabase database;
     protected final Map<String, Object> dataMap = new HashMap<>();

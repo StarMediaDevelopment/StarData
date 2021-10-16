@@ -1,6 +1,7 @@
 package com.starmediadev.data.registries;
 
-import com.starmediadev.data.handlers.*;
+import com.starmediadev.data.internal.handlers.*;
+import com.starmediadev.data.model.DataTypeHandler;
 
 import java.util.HashSet;
 import java.util.Set;

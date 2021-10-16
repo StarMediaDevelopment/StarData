@@ -1,7 +1,7 @@
 package com.starmediadev.data.model;
 
 public class AbstractDataObject implements IDataObject {
-    private DataInfo dataInfo;
+    protected DataInfo dataInfo = new DataInfo();
 
     public DataInfo getDataInfo() {
         return dataInfo;

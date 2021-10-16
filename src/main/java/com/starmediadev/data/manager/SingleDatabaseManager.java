@@ -3,7 +3,7 @@ package com.starmediadev.data.manager;
 import com.starmediadev.data.StarData;
 import com.starmediadev.data.model.IDataObject;
 import com.starmediadev.data.model.SQLDatabase;
-import com.starmediadev.data.model.Table;
+import com.starmediadev.data.internal.objects.Table;
 import com.starmediadev.data.model.source.DataSource;
 import com.starmediadev.data.model.source.MysqlDataSource;
 import com.starmediadev.data.model.source.SqliteDataSource;
@@ -24,7 +24,7 @@ public class SingleDatabaseManager extends DatabaseManager {
     public SQLDatabase setupDatabase(SqlProperties properties) {
         DataSource dataSource = null;
         if (properties instanceof MysqlProperties mysqlProperties) {
-            dataSource = new MysqlDataSource(mysqlProperties.toJDBCUrl(), mysqlProperties.getUsername(), mysqlProperties.getPassword());
+            dataSource = new MysqlDataSource(mysqlProperties.toJDBCUrl(), mysqlProperties.getDatabase(), mysqlProperties.getUsername(), mysqlProperties.getPassword());
         } else if (properties instanceof SqliteProperties sqliteProperties) {
             dataSource = new SqliteDataSource(sqliteProperties.getFile());
         }

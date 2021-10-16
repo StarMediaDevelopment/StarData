@@ -1,6 +1,6 @@
-package com.starmediadev.data.model;
+package com.starmediadev.data.internal.objects;
 
-import com.starmediadev.data.handlers.DataTypeHandler;
+import com.starmediadev.data.model.DataTypeHandler;
 
 public class Column {
     protected final String name;

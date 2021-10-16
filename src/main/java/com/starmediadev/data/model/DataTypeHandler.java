@@ -1,4 +1,4 @@
-package com.starmediadev.data.handlers;
+package com.starmediadev.data.model;
 
 import com.starmediadev.data.model.DataType;
 
