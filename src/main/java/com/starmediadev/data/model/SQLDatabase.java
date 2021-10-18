@@ -116,8 +116,11 @@ public class SQLDatabase {
             if (DataInfo.class.isAssignableFrom(field.getType())) {
                 logger.finest(String.format("The field %s has the type of DataInfo", field.getName()));
                 Integer id = record.getDataInfo().getId(name);
-                logger.finest(String.format("The id for this entry in the database %s is %s", name, id));
-                serialized.put("id", id);
+                if (id != null) {
+                    logger.finest(String.format("The id for this entry in the database %s is %s", name, id));
+                    serialized.put("id", id);
+                }
+                
                 continue;
             }
 
@@ -243,41 +246,43 @@ public class SQLDatabase {
         logger.finest("Finished generating information from the object.");
 
         DataInfo dataInfo = record.getDataInfo();
-
+        
         String querySQL = null;
         Iterator<Map.Entry<String, Object>> iterator = serialized.entrySet().iterator();
 
-        String where = Statements.WHERE.replace("{column}", "id").replace("{value}", dataInfo.getId(name) + "");
-        String selectSql = Statements.SELECT.replace("{database}", this.name).replace("{table}", table.getName()) + " " + where;
+        if (dataInfo.getId(name) != null) {
+            String where = Statements.WHERE.replace("{column}", "id").replace("{value}", dataInfo.getId(name) + "");
+            String selectSql = Statements.SELECT.replace("{database}", this.name).replace("{table}", table.getName()) + " " + where;
 
-        logger.finest("Checking to see if existing data exists...");
-        try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement(); ResultSet resultSet = statement.executeQuery(selectSql)) {
-            if (resultSet.next()) {
-                Row row = new Row(table, resultSet, this, starData);
-                if (!row.getDataMap().isEmpty()) {
-                    StringBuilder sb = new StringBuilder();
+            logger.finest("Checking to see if existing data exists...");
+            try (Connection con = dataSource.getConnection(); Statement statement = con.createStatement(); ResultSet resultSet = statement.executeQuery(selectSql)) {
+                if (resultSet.next()) {
+                    Row row = new Row(table, resultSet, this, starData);
+                    if (!row.getDataMap().isEmpty()) {
+                        StringBuilder sb = new StringBuilder();
 
-                    while (iterator.hasNext()) {
-                        Map.Entry<String, Object> entry = iterator.next();
-                        if (entry.getValue() != null) {
-                            DataType type = typeRegistry.getHandler(entry.getValue().getClass()).getMysqlType();
-                            if (type == null) {
-                                continue;
-                            }
-                            sb.append(Statements.UPDATE_VALUE.replace("{column}", entry.getKey()).replace("{value}", entry.getValue() + ""));
-                            if (iterator.hasNext()) {
-                                sb.append(",");
+                        while (iterator.hasNext()) {
+                            Map.Entry<String, Object> entry = iterator.next();
+                            if (entry.getValue() != null) {
+                                DataType type = typeRegistry.getHandler(entry.getValue().getClass()).getMysqlType();
+                                if (type == null) {
+                                    continue;
+                                }
+                                sb.append(Statements.UPDATE_VALUE.replace("{column}", entry.getKey()).replace("{value}", entry.getValue() + ""));
+                                if (iterator.hasNext()) {
+                                    sb.append(",");
+                                }
                             }
                         }
-                    }
 
-                    querySQL = Statements.UPDATE.replace("{values}", sb.toString()).replace("{location}", "id=" + dataInfo.getId(name));
-                    querySQL = querySQL.replace("{table}", table.getName()).replace("{database}", name);
-                    logger.finest("Data exists for the id provided, using an update query");
+                        querySQL = Statements.UPDATE.replace("{values}", sb.toString()).replace("{location}", "id=" + dataInfo.getId(name));
+                        querySQL = querySQL.replace("{table}", table.getName()).replace("{database}", name);
+                        logger.finest("Data exists for the id provided, using an update query");
+                    }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
 
         if (querySQL != null && !querySQL.equals("")) {
@@ -298,6 +303,11 @@ public class SQLDatabase {
                     colBuilder.deleteCharAt(colBuilder.lastIndexOf(","));
                     valueBuilder.deleteCharAt(valueBuilder.lastIndexOf(","));
                     continue;
+                }
+                if (column.getName().equalsIgnoreCase("id")) {
+                    if (serialized.get(column.getName()) == null) {
+                        continue;
+                    }
                 }
                 colBuilder.append("`").append(column.getName()).append("`");
                 valueBuilder.append("'").append(serialized.get(column.getName())).append("'");
