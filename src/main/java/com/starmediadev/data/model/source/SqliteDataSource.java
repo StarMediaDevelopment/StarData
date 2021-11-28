@@ -5,14 +5,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public class SqliteDataSource implements DataSource {
+public record SqliteDataSource(Path fileLocation) implements DataSource {
     
-    private Path fileLocation;
-
-    public SqliteDataSource(Path fileLocation) {
-        this.fileLocation = fileLocation;
-    }
-
     public Connection getConnection() {
         try {
             return DriverManager.getConnection("jdbc:sqlite:" + fileLocation.toString());
@@ -21,7 +15,7 @@ public class SqliteDataSource implements DataSource {
         }
         return null;
     }
-
+    
     public String getName() {
         return fileLocation.getFileName().toString().substring(0, fileLocation.getFileName().toString().lastIndexOf('.'));
     }

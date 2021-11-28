@@ -36,14 +36,11 @@ public class SQLDatabase {
     public SQLDatabase(StarData starData, SqlProperties properties, DataSource dataSource) {
         this.starData = starData;
         this.logger = starData.getLogger();
-        
         this.properties = properties.clone();
-
         this.typeRegistry = starData.getTypeRegistry();
         this.dataObjectRegistry = starData.getDataObjectRegistry();
         this.dataSource = dataSource;
         this.name = dataSource.getName();
-        System.out.println(name);
     }
 
     public <T extends IDataObject> List<T> getAllData(Class<T> recordType, String columnName, Object value) {
