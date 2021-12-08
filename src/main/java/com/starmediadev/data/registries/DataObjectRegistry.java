@@ -8,7 +8,7 @@ import com.starmediadev.data.internal.objects.Column;
 import com.starmediadev.data.model.DataInfo;
 import com.starmediadev.data.model.IDataObject;
 import com.starmediadev.data.internal.objects.Table;
-import com.starmediadev.utils.Utils;
+import com.starmediadev.utils.helper.ReflectionHelper;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -44,7 +44,7 @@ public final class DataObjectRegistry {
             }
 
             Field dataInfoField = null;
-            for (Field classField : Utils.getClassFields(recordClass)) {
+            for (Field classField : ReflectionHelper.getClassFields(recordClass)) {
                 if (DataInfo.class.isAssignableFrom(classField.getType())) {
                     dataInfoField = classField;
                 }
@@ -55,7 +55,7 @@ public final class DataObjectRegistry {
                 return null;
             }
 
-            Set<Field> fields = Utils.getClassFields(recordClass);
+            Set<Field> fields = ReflectionHelper.getClassFields(recordClass);
             Map<String, Column> columns = new HashMap<>();
             for (Field field : fields) {
                 field.setAccessible(true);

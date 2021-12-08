@@ -10,7 +10,7 @@ import com.starmediadev.data.model.source.SqliteDataSource;
 import com.starmediadev.data.properties.MysqlProperties;
 import com.starmediadev.data.properties.SqlProperties;
 import com.starmediadev.data.properties.SqliteProperties;
-import com.starmediadev.utils.Utils;
+import com.starmediadev.utils.helper.StringHelper;
 
 import java.util.*;
 
@@ -67,7 +67,7 @@ public class MultidatabaseManager extends DatabaseManager {
         if (rawDatabases.isEmpty()) {
             logger.finest("No databases existed from object data, adding databases from the table configuration");
             rawDatabases.addAll(table.getDatabases());
-            logger.finest("Configured Table databases: " + Utils.join(table.getDatabases(), ","));
+            logger.finest("Configured Table databases: " + StringHelper.join(table.getDatabases(), ","));
         }
         List<SQLDatabase> databases = new ArrayList<>();
         if (!rawDatabases.isEmpty()) {
