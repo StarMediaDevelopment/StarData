@@ -8,7 +8,7 @@ import com.starmediadev.data.internal.handlers.CollectionHandler;
 import com.starmediadev.data.internal.handlers.DataObjectHandler;
 import com.starmediadev.data.model.*;
 import com.starmediadev.data.registries.DataObjectRegistry;
-import com.starmediadev.utils.Utils;
+import com.starmediadev.utils.helper.ReflectionHelper;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -59,7 +59,7 @@ public class Row {
             constructor.setAccessible(true);
             T record = (T) constructor.newInstance();
             logger.finest(String.format("Created a new instance of type %s", don));
-            Set<Field> fields = Utils.getClassFields(recordClass);
+            Set<Field> fields = ReflectionHelper.getClassFields(recordClass);
             logger.finest(String.format("Found a total of %s fields for type %s", fields.size(), don));
             for (Field field : fields) {
                 String fn = field.getName();

@@ -13,7 +13,8 @@ import com.starmediadev.data.model.source.DataSource;
 import com.starmediadev.data.properties.SqlProperties;
 import com.starmediadev.data.registries.DataObjectRegistry;
 import com.starmediadev.data.registries.TypeRegistry;
-import com.starmediadev.utils.Utils;
+import com.starmediadev.utils.helper.ReflectionHelper;
+import com.starmediadev.utils.helper.StringHelper;
 
 import java.lang.reflect.*;
 import java.sql.*;
@@ -100,7 +101,7 @@ public class SQLDatabase {
         }
         logger.finest(String.format("Found a table with the name %s for the type %s", table.getName(), don));
         Map<String, Object> serialized = new HashMap<>();
-        Set<Field> fields = Utils.getClassFields(record.getClass());
+        Set<Field> fields = ReflectionHelper.getClassFields(record.getClass());
 
         logger.finest(String.format("There are a total of %s fields for the type %s", fields.size(), don));
 
@@ -153,8 +154,8 @@ public class SQLDatabase {
                 saveAction = () -> {
                     logger.finest(String.format("Value of the field %s of the type %s is an IDataObject, recursively saving", field.getName(), don));
                     starData.getDatabaseManager().saveData(dataObject);
-                    String keys = Utils.join(dataObject.getDataInfo().getMappings().keySet(), ",");
-                    String values = Utils.join(dataObject.getDataInfo().getMappings().values(), ",");
+                    String keys = StringHelper.join(dataObject.getDataInfo().getMappings().keySet(), ",");
+                    String values = StringHelper.join(dataObject.getDataInfo().getMappings().values(), ",");
                     logger.finest("Value for the keys of the saved data object " + keys);
                     logger.finest("Value for the values of the saved data object " + values);
                     serialized.put(field.getName(), keys + ":" + values);
@@ -191,9 +192,9 @@ public class SQLDatabase {
                         }
                     }
                     if (collectionContainsRecord) {
-                        fieldValue[0] = serializeCollection(record, field, fieldValue[0], Utils.join(recordIds, ","), serializedElements);
+                        fieldValue[0] = serializeCollection(record, field, fieldValue[0], StringHelper.join(recordIds, ","), serializedElements);
                     } else if (!serializedElements.isEmpty()) {
-                        fieldValue[0] = serializeCollection(record, field, fieldValue[0], Utils.join(serializedElements, ","), serializedElements);
+                        fieldValue[0] = serializeCollection(record, field, fieldValue[0], StringHelper.join(serializedElements, ","), serializedElements);
                     }
                     serialized.put(field.getName(), fieldValue[0]);
                 };
