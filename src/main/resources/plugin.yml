@@ -1,5 +1,0 @@
-name: ${project.name}
-version: ${project.version}
-description: ${project.description}
-main: com.starmediadev.plugins.data.StarDataPlugin
-api-version: 1.17
