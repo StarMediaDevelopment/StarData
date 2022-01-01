@@ -1,5 +1,8 @@
 package com.starmediadev.data;
 
+/**
+ * This is the primary entry point to this library. Everthing that can be saved will be of this type or something that extends this type.
+ */
 public interface IDocument {
     /**
      * This ID is going to be based on an Internal System for all of the database types registered to the instance of the library

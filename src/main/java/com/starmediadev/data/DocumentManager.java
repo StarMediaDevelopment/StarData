@@ -2,6 +2,9 @@ package com.starmediadev.data;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * This manages the documents for the library. Documents are what every method of saving uses within this library
+ */
 public class DocumentManager {
     /**
      * This is the control variable for the Document ID system. This will have to be stored somewhere
