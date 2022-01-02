@@ -15,5 +15,5 @@ public interface IDocument {
      * This sets the ID for this document.
      * The library will be checking the id to make sure, it will throw an error and skip if it doesn't
      */
-    void setId();
+    void setId(long id);
 }
