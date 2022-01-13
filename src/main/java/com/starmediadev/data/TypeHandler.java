@@ -17,6 +17,10 @@ public abstract class TypeHandler<T> {
     public abstract String serializeRedis(T object);
     public abstract String serializeJson(T object);
     
+    public abstract T deserializeSql(Object object);
+    public abstract T deserializeRedis(String str);
+    public abstract T deserializeJson(String str);
+    
     public Class<T> getType() {
         return type;
     }
