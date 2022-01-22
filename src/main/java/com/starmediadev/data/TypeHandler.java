@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class TypeHandler<T> {
-    protected Class<T> type;
+    protected final Class<T> type;
     protected List<Class<T>> subTypes = new ArrayList<>();
-    protected SQLDataType SQLDataType;
+    protected final SQLDataType SQLDataType;
     
     public TypeHandler(Class<T> type, SQLDataType SQLDataType) {
         this.type = type;
